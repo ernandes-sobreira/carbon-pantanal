@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Coletas — Mapa + Séries + Comparação</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+
+  <style>
+    :root{
+      --bg:#0f1115;
+      --panel:#171a20;
+      --panel2:#1d2129;
+      --stroke:#2a2f3a;
+      --muted:#a8b0bf;
+      --txt:#eef1f6;
+      --soft:#cfd6e3;
+      --chip:#232836;
+      --btn:#2b3140;
+      --btn2:#353c4f;
+      --accent:#bfc6d6; /* cinza claro */
+      --good:#9fd39f;
+      --bad:#e9a3a3;
+      --shadow: 0 12px 40px rgba(0,0,0,.45);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 800px at 30% 0%, #1a1f2a 0%, var(--bg) 55%);
+      color:var(--txt);
+    }
+    header{
+      padding:18px 18px 10px;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:space-between;
+      max-width:1400px;
+      margin:0 auto;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    h1{font-size:18px; margin:0; letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:12px}
+    .wrap{
+      max-width:1400px;
+      margin:0 auto;
+      padding: 10px 18px 18px;
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:14px;
+    }
+    .card{
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:12px 14px;
+      border-bottom:1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .card .hd .ttl{font-size:13px; color:var(--soft); letter-spacing:.3px}
+    .card .bd{padding:12px 14px}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    label{font-size:12px; color:var(--muted)}
+    input, select{
+      width:100%;
+      background:#0f131a;
+      color:var(--txt);
+      border:1px solid var(--stroke);
+      border-radius: 12px;
+      padding:10px 10px;
+      outline:none;
+    }
+    input:focus, select:focus{border-color:#3b4252}
+    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    .grid3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px}
+    .btn{
+      background: linear-gradient(180deg, var(--btn) 0%, #232a38 100%);
+      border:1px solid var(--stroke);
+      color:var(--txt);
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:12px;
+    }
+    .btn:hover{background: linear-gradient(180deg, var(--btn2) 0%, #2b3346 100%)}
+    .btn.small{padding:8px 10px; font-size:12px}
+    .btn.ghost{background:transparent}
+    .pill{
+      background: var(--chip);
+      border:1px solid var(--stroke);
+      padding:6px 8px;
+      border-radius: 999px;
+      color:var(--soft);
+      font-size:11px;
+    }
+    #map{height: 520px; width:100%;}
+    .stat{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .kpi{
+      background:#0f131a;
+      border:1px solid var(--stroke);
+      border-radius: 14px;
+      padding:10px;
+    }
+    .kpi .k{font-size:11px; color:var(--muted)}
+    .kpi .v{font-size:16px; margin-top:4px; font-weight:800}
+    .kpi .s{font-size:11px; color:var(--muted); margin-top:2px}
+    .sites{
+      max-height: 260px;
+      overflow:auto;
+      padding-right:6px;
+    }
+    .site-item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 8px;
+      border-radius: 12px;
+      border:1px solid transparent;
+    }
+    .site-item:hover{background:#101521; border-color: #21283a}
+    .site-left{
+      display:flex; align-items:center; gap:10px; min-width: 0;
+    }
+    .site-name{
+      font-size:12px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .site-meta{font-size:11px; color:var(--muted)}
+    .hint{font-size:11px; color:var(--muted); line-height:1.35}
+    .divider{height:1px; background:var(--stroke); margin:10px 0}
+    canvas{background:#0f131a; border:1px solid var(--stroke); border-radius: 14px}
+    .toast{
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      background: #0e1218;
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: var(--soft);
+      font-size: 12px;
+      box-shadow: var(--shadow);
+      display:none;
+      max-width: 360px;
+      z-index: 9999;
+    }
+    .flexend{display:flex; justify-content:flex-end; gap:8px}
+    @media (max-width: 1100px){
+      .wrap{grid-template-columns: 1fr}
+      #map{height: 420px}
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="title">
+    <h1>Coletas — mapa, valores por local e comparações</h1>
+    <div class="sub">Upload CSV/XLSX → mapeie colunas → selecione locais → veja min/max e séries temporais (tema cinza).</div>
+  </div>
+  <div class="row">
+    <span class="pill" id="pillStatus">Sem dados carregados</span>
+    <button class="btn small ghost" id="btnDemo">Carregar demo</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- LEFT -->
+  <div class="card">
+    <div class="hd">
+      <div class="ttl">1) Dados e mapeamento</div>
+      <button class="btn small" id="btnReset">Reset</button>
+    </div>
+    <div class="bd">
+      <div class="grid2">
+        <div>
+          <label>Arquivo (CSV ou XLSX)</label>
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+          <div class="hint" style="margin-top:6px">
+            Recomendado ter colunas para: <b>Local</b>, <b>Latitude</b>, <b>Longitude</b>, <b>Data</b> e <b>Valor</b> (ou várias variáveis).
+          </div>
+        </div>
+        <div>
+          <label>Planilha (se XLSX)</label>
+          <select id="sheetSelect" disabled></select>
+          <div class="hint" style="margin-top:6px">Se for CSV, não precisa.</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid2">
+        <div>
+          <label>Coluna de Local</label>
+          <select id="colSite" disabled></select>
+        </div>
+        <div>
+          <label>Coluna de Data</label>
+          <select id="colDate" disabled></select>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <label>Coluna de Latitude</label>
+          <select id="colLat" disabled></select>
+        </div>
+        <div>
+          <label>Coluna de Longitude</label>
+          <select id="colLon" disabled></select>
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label>Variável (coluna numérica para analisar)</label>
+        <select id="colValue" disabled></select>
+        <div class="hint" style="margin-top:6px">
+          Se seu arquivo tiver várias variáveis (ex.: CO2_flux, Temp, pH), você troca aqui e tudo atualiza.
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btnApply" disabled>Aplicar e montar mapa</button>
+        <button class="btn ghost" id="btnAuto" disabled>Auto-detectar colunas</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ttl" style="font-size:13px; color:var(--soft); margin-bottom:8px">2) Filtros e seleção de locais</div>
+
+      <div class="grid2">
+        <div>
+          <label>Data inicial</label>
+          <input type="date" id="dateStart" disabled />
+        </div>
+        <div>
+          <label>Data final</label>
+          <input type="date" id="dateEnd" disabled />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="btn small" id="btnSelectAll" disabled>Selecionar todos</button>
+        <button class="btn small ghost" id="btnSelectNone" disabled>Selecionar nenhum</button>
+        <button class="btn small ghost" id="btnFit" disabled>Enquadrar mapa</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="hint">Locais (marque para incluir na análise e no gráfico):</div>
+      <div class="sites" id="sitesList" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="card">
+    <div class="hd">
+      <div class="ttl">Mapa e análises</div>
+      <div class="row">
+        <span class="pill" id="pillMeta">—</span>
+      </div>
+    </div>
+    <div class="bd">
+      <div id="map"></div>
+
+      <div class="divider"></div>
+
+      <div class="stat">
+        <div class="kpi">
+          <div class="k">Locais selecionados</div>
+          <div class="v" id="kpiSites">0</div>
+          <div class="s" id="kpiSitesSub">—</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Registros (após filtros)</div>
+          <div class="v" id="kpiRows">0</div>
+          <div class="s" id="kpiRowsSub">—</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Mínimo (seleção)</div>
+          <div class="v" id="kpiMin">—</div>
+          <div class="s" id="kpiMinSub">—</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Máximo (seleção)</div>
+          <div class="v" id="kpiMax">—</div>
+          <div class="s" id="kpiMaxSub">—</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="row" style="justify-content:space-between">
+          <div class="ttl">Comparação temporal (locais selecionados)</div>
+          <div class="hint">Linha por local (agregado por dia). Use poucos locais pra ficar legível.</div>
+        </div>
+        <div style="margin-top:8px">
+          <canvas id="chart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- libs -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+/* ==============================
+   Estado
+============================== */
+let rawTable = [];         // linhas como objetos {col: value}
+let columns = [];          // nomes das colunas
+let mapped = null;         // {site, lat, lon, date, value}
+let prepared = [];         // linhas normalizadas: {site, lat, lon, date(ISO), ts(ms), value(number), rowRef}
+let sites = new Map();     // site -> {lat, lon, rows:[]}
+let selectedSites = new Set();
+let map, clusterLayer;
+let chart;
+
+/* ==============================
+   Utils
+============================== */
+const $ = (id)=>document.getElementById(id);
+
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.style.display="none", 3200);
+}
+function isNumber(x){
+  return x!==null && x!=="" && !Number.isNaN(Number(x)) && Number.isFinite(Number(x));
+}
+function parseDateAny(v){
+  // aceita Date, número Excel, ou string
+  if(v instanceof Date && !isNaN(v)) return v;
+  if(typeof v === "number"){
+    // Excel serial -> Date (SheetJS)
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d){
+      return new Date(Date.UTC(d.y, d.m-1, d.d, d.H||0, d.M||0, d.S||0));
+    }
+  }
+  if(typeof v === "string"){
+    const s = v.trim();
+    if(!s) return null;
+
+    // ISO
+    let d = new Date(s);
+    if(!isNaN(d)) return d;
+
+    // dd/mm/yyyy (com ou sem hora)
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if(m){
+      const dd = Number(m[1]), mm = Number(m[2]), yy=Number(m[3]);
+      const hh = m[4]?Number(m[4]):0, mi=m[5]?Number(m[5]):0, ss=m[6]?Number(m[6]):0;
+      return new Date(yy, mm-1, dd, hh, mi, ss);
+    }
+
+    // yyyy-mm-dd
+    const m2 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m2){
+      return new Date(Number(m2[1]), Number(m2[2])-1, Number(m2[3]));
+    }
+  }
+  return null;
+}
+function fmtNum(x){
+  if(x===null || x===undefined || Number.isNaN(x)) return "—";
+  const n = Number(x);
+  return (Math.abs(n)>=1000) ? n.toLocaleString("pt-BR") : n.toLocaleString("pt-BR",{maximumFractionDigits: 4});
+}
+function safeStr(x){ return (x===null || x===undefined) ? "" : String(x); }
+
+function guessColumn(regexList){
+  const lower = columns.map(c=>c.toLowerCase());
+  for(const r of regexList){
+    const i = lower.findIndex(c=> r.test(c));
+    if(i>=0) return columns[i];
+  }
+  return "";
+}
+function fillSelect(selectEl, opts, prefer=""){
+  selectEl.innerHTML = "";
+  for(const o of opts){
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    selectEl.appendChild(op);
+  }
+  if(prefer && opts.includes(prefer)) selectEl.value = prefer;
+}
+
+/* ==============================
+   Leaflet init
+============================== */
+function initMap(){
+  map = L.map("map", { zoomControl: true }).setView([-15.6, -56.1], 5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap"
+  }).addTo(map);
+
+  clusterLayer = L.markerClusterGroup({
+    showCoverageOnHover:false,
+    spiderfyOnMaxZoom:true,
+    disableClusteringAtZoom: 14
+  });
+  map.addLayer(clusterLayer);
+}
+
+/* ==============================
+   Chart init
+============================== */
+function initChart(){
+  const ctx = $("chart");
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      plugins: {
+        legend: { labels: { color: "#cfd6e3" } },
+        tooltip: {
+          callbacks:{
+            label: (it)=> `${it.dataset.label}: ${fmtNum(it.raw?.y)}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color:"#a8b0bf" }, grid: { color:"rgba(255,255,255,.06)" } },
+        y: { ticks: { color:"#a8b0bf" }, grid: { color:"rgba(255,255,255,.06)" } }
+      },
+      elements: { point: { radius: 0 } }
+    }
+  });
+}
+
+/* ==============================
+   Leitura de arquivo
+============================== */
+async function readCSV(file){
+  const text = await file.text();
+  // separador automático simples: tenta ; e ,
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  const sep = (lines[0].includes(";") && !lines[0].includes(",")) ? ";" : ",";
+  const header = lines[0].split(sep).map(s=>s.trim());
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const parts = lines[i].split(sep);
+    const obj = {};
+    header.forEach((h,idx)=> obj[h] = (parts[idx] ?? "").trim());
+    rows.push(obj);
+  }
+  return { header, rows };
+}
+
+async function readXLSX(file){
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data, { type:"array" });
+  const names = wb.SheetNames;
+  $("sheetSelect").disabled = false;
+  fillSelect($("sheetSelect"), names, names[0]);
+  return { wb, names };
+}
+
+function sheetToTable(wb, sheetName){
+  const ws = wb.Sheets[sheetName];
+  const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+  const header = json.length ? Object.keys(json[0]) : [];
+  return { header, rows: json };
+}
+
+/* ==============================
+   Preparação (normalização)
+============================== */
+function buildPrepared(){
+  const siteCol = $("colSite").value;
+  const latCol  = $("colLat").value;
+  const lonCol  = $("colLon").value;
+  const dateCol = $("colDate").value;
+  const valCol  = $("colValue").value;
+
+  mapped = { site:siteCol, lat:latCol, lon:lonCol, date:dateCol, value:valCol };
+
+  prepared = [];
+  sites = new Map();
+
+  for(const r of rawTable){
+    const site = safeStr(r[siteCol]).trim();
+    const lat = Number(r[latCol]);
+    const lon = Number(r[lonCol]);
+    const d = parseDateAny(r[dateCol]);
+    const v = Number(r[valCol]);
+
+    if(!site) continue;
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    if(!d || isNaN(d)) continue;
+    if(!Number.isFinite(v)) continue;
+
+    const iso = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    const row = { site, lat, lon, dateISO: iso, ts: d.getTime(), value: v, rowRef: r };
+    prepared.push(row);
+
+    if(!sites.has(site)){
+      sites.set(site, { lat, lon, rows: [] });
+    }
+    sites.get(site).rows.push(row);
+  }
+
+  // ordena por tempo dentro de cada site
+  for(const [k, obj] of sites.entries()){
+    obj.rows.sort((a,b)=> a.ts-b.ts);
+  }
+}
+
+/* ==============================
+   UI - lista de sites
+============================== */
+function renderSitesList(){
+  const box = $("sitesList");
+  box.innerHTML = "";
+
+  const siteArr = Array.from(sites.keys()).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  selectedSites = new Set(siteArr);
+
+  for(const s of siteArr){
+    const meta = sites.get(s);
+    const last = meta.rows[meta.rows.length-1];
+
+    const div = document.createElement("div");
+    div.className = "site-item";
+
+    const left = document.createElement("div");
+    left.className = "site-left";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = true;
+    cb.style.width = "18px";
+    cb.style.height = "18px";
+    cb.addEventListener("change", ()=>{
+      if(cb.checked) selectedSites.add(s); else selectedSites.delete(s);
+      refreshAll();
+    });
+
+    const txt = document.createElement("div");
+    txt.style.minWidth = "0";
+    txt.innerHTML = `
+      <div class="site-name">${s}</div>
+      <div class="site-meta">${meta.rows.length} regs • último: ${last.dateISO} • ${fmtNum(last.value)}</div>
+    `;
+
+    left.appendChild(cb);
+    left.appendChild(txt);
+
+    const btn = document.createElement("button");
+    btn.className = "btn small ghost";
+    btn.textContent = "Focar";
+    btn.addEventListener("click", ()=>{
+      map.setView([meta.lat, meta.lon], 14);
+    });
+
+    div.appendChild(left);
+    div.appendChild(btn);
+    box.appendChild(div);
+  }
+
+  $("btnSelectAll").disabled = false;
+  $("btnSelectNone").disabled = false;
+  $("btnFit").disabled = false;
+  $("dateStart").disabled = false;
+  $("dateEnd").disabled = false;
+}
+
+/* ==============================
+   Mapa - marcadores
+============================== */
+function renderMap(){
+  clusterLayer.clearLayers();
+
+  const bounds = [];
+  for(const [site, obj] of sites.entries()){
+    if(!selectedSites.has(site)) continue;
+
+    // aplica filtro de datas aos rows
+    const filtered = applyDateFilter(obj.rows);
+    if(!filtered.length) continue;
+
+    const last = filtered[filtered.length-1];
+    const stats = computeStats(filtered);
+
+    const m = L.marker([obj.lat, obj.lon], { title: site });
+    const tip = `${site}\nÚltimo: ${last.dateISO} = ${fmtNum(last.value)}\nMin: ${fmtNum(stats.min)} | Máx: ${fmtNum(stats.max)} | n=${stats.n}`;
+    m.bindTooltip(tip, { direction:"top", opacity:0.9 });
+
+    const html = `
+      <div style="min-width:260px">
+        <div style="font-weight:800; margin-bottom:6px">${site}</div>
+        <div style="font-size:12px; color:#a8b0bf; margin-bottom:8px">
+          Coord: ${obj.lat.toFixed(5)}, ${obj.lon.toFixed(5)}
+        </div>
+        <div style="font-size:12px; margin-bottom:6px">
+          <b>Último:</b> ${last.dateISO} — <b>${fmtNum(last.value)}</b>
+        </div>
+        <div style="font-size:12px; margin-bottom:6px">
+          <b>Min:</b> ${fmtNum(stats.min)} (${stats.minDate})<br/>
+          <b>Max:</b> ${fmtNum(stats.max)} (${stats.maxDate})<br/>
+          <b>Média:</b> ${fmtNum(stats.mean)} • <b>n</b> = ${stats.n}
+        </div>
+        <div style="font-size:11px; color:#a8b0bf">Dica: selecione/desmarque locais na lista à esquerda para comparar.</div>
+      </div>
+    `;
+    m.bindPopup(html);
+
+    clusterLayer.addLayer(m);
+    bounds.push([obj.lat, obj.lon]);
+  }
+
+  if(bounds.length){
+    $("btnFit").disabled = false;
+    try{ map.fitBounds(bounds, { padding:[30,30] }); }catch(e){}
+  }
+}
+
+/* ==============================
+   Stats + filtros
+============================== */
+function applyDateFilter(rows){
+  const s = $("dateStart").value ? new Date($("dateStart").value).getTime() : null;
+  const e = $("dateEnd").value ? new Date($("dateEnd").value).getTime() : null;
+
+  return rows.filter(r=>{
+    if(s && r.ts < s) return false;
+    if(e && r.ts > (e + 24*3600*1000 - 1)) return false; // inclui o dia final
+    return true;
+  });
+}
+
+function computeStats(rows){
+  let min=Infinity, max=-Infinity, sum=0, minDate="—", maxDate="—";
+  for(const r of rows){
+    if(r.value < min){ min = r.value; minDate = r.dateISO; }
+    if(r.value > max){ max = r.value; maxDate = r.dateISO; }
+    sum += r.value;
+  }
+  const n = rows.length;
+  return { min, max, mean: sum/n, n, minDate, maxDate };
+}
+
+/* ==============================
+   Chart (agrega por dia)
+============================== */
+function renderChart(){
+  const labelsSet = new Set();
+  const seriesBySite = [];
+
+  for(const [site, obj] of sites.entries()){
+    if(!selectedSites.has(site)) continue;
+    const filtered = applyDateFilter(obj.rows);
+    if(!filtered.length) continue;
+
+    // agrega por dia (média)
+    const byDay = new Map();
+    for(const r of filtered){
+      if(!byDay.has(r.dateISO)) byDay.set(r.dateISO, {sum:0, n:0});
+      const o = byDay.get(r.dateISO);
+      o.sum += r.value; o.n += 1;
+    }
+    const points = [];
+    for(const [day, o] of byDay.entries()){
+      labelsSet.add(day);
+      points.push({ x: day, y: o.sum/o.n });
+    }
+    points.sort((a,b)=> a.x.localeCompare(b.x));
+    seriesBySite.push({ site, points });
+  }
+
+  const labels = Array.from(labelsSet).sort((a,b)=> a.localeCompare(b));
+  const datasets = seriesBySite.slice(0, 10).map((s, idx)=>({
+    label: s.site,
+    data: labels.map(d=>{
+      const p = s.points.find(pp=>pp.x===d);
+      return p ? p.y : null;
+    }),
+    borderWidth: 2,
+    spanGaps: true
+  }));
+
+  chart.data.labels = labels;
+  chart.data.datasets = datasets;
+  chart.update();
+}
+
+/* ==============================
+   KPIs
+============================== */
+function renderKPIs(){
+  let totalRows = 0;
+  let globalMin = Infinity, globalMax = -Infinity;
+  let minSite="—", maxSite="—", minDate="—", maxDate="—";
+  const sel = Array.from(selectedSites);
+
+  for(const [site, obj] of sites.entries()){
+    if(!selectedSites.has(site)) continue;
+    const filtered = applyDateFilter(obj.rows);
+    totalRows += filtered.length;
+    for(const r of filtered){
+      if(r.value < globalMin){ globalMin = r.value; minSite = site; minDate = r.dateISO; }
+      if(r.value > globalMax){ globalMax = r.value; maxSite = site; maxDate = r.dateISO; }
+    }
+  }
+
+  $("kpiSites").textContent = sel.length;
+  $("kpiSitesSub").textContent = sel.length ? `Exibindo até 10 no gráfico` : "—";
+  $("kpiRows").textContent = totalRows.toLocaleString("pt-BR");
+  $("kpiRowsSub").textContent = $("colValue").value ? `Variável: ${$("colValue").value}` : "—";
+
+  $("kpiMin").textContent = (globalMin===Infinity) ? "—" : fmtNum(globalMin);
+  $("kpiMinSub").textContent = (globalMin===Infinity) ? "—" : `${minSite} • ${minDate}`;
+
+  $("kpiMax").textContent = (globalMax===-Infinity) ? "—" : fmtNum(globalMax);
+  $("kpiMaxSub").textContent = (globalMax===-Infinity) ? "—" : `${maxSite} • ${maxDate}`;
+}
+
+/* ==============================
+   Refresh geral
+============================== */
+function refreshAll(){
+  renderMap();
+  renderKPIs();
+  renderChart();
+  $("pillMeta").textContent = `${selectedSites.size} locais selecionados • ${prepared.length.toLocaleString("pt-BR")} linhas válidas`;
+}
+
+/* ==============================
+   Auto-detecção
+============================== */
+function autoDetect(){
+  const site = guessColumn([/(^| )site( |$)/, /local/, /ponto/, /station/, /nome/]);
+  const lat  = guessColumn([/^lat/, /latitude/]);
+  const lon  = guessColumn([/^lon/, /longitude/, /lng/]);
+  const date = guessColumn([/^date/, /data/, /datetime/, /coleta/]);
+
+  // escolhe uma coluna numérica provável
+  let value = "";
+  const candidates = columns.filter(c=>{
+    let ok=0, seen=0;
+    for(let i=0;i<Math.min(rawTable.length, 50);i++){
+      const v = rawTable[i][c];
+      if(v===null || v===undefined || v==="") continue;
+      seen++;
+      if(isNumber(v)) ok++;
+    }
+    return seen>0 && (ok/seen) > 0.7;
+  });
+  if(candidates.length) value = candidates[0];
+
+  if(site) $("colSite").value = site;
+  if(lat)  $("colLat").value  = lat;
+  if(lon)  $("colLon").value  = lon;
+  if(date) $("colDate").value = date;
+  if(value) $("colValue").value = value;
+
+  toast("Auto-detect aplicado. Confira e clique em 'Aplicar e montar mapa'.");
+}
+
+/* ==============================
+   Eventos
+============================== */
+let wbCache = null;
+
+$("fileInput").addEventListener("change", async (ev)=>{
+  const f = ev.target.files?.[0];
+  if(!f) return;
+
+  try{
+    const ext = f.name.toLowerCase().split(".").pop();
+    wbCache = null;
+    $("sheetSelect").innerHTML = "";
+    $("sheetSelect").disabled = true;
+
+    if(ext === "csv"){
+      const {header, rows} = await readCSV(f);
+      columns = header;
+      rawTable = rows;
+      afterLoaded();
+      toast("CSV carregado.");
+    }else{
+      const {wb, names} = await readXLSX(f);
+      wbCache = wb;
+      // carrega a primeira planilha por padrão
+      const {header, rows} = sheetToTable(wb, names[0]);
+      columns = header;
+      rawTable = rows;
+      afterLoaded();
+      toast("XLSX carregado. Selecione a planilha se quiser.");
+    }
+  }catch(e){
+    console.error(e);
+    toast("Erro ao ler arquivo. Confira o formato.");
+  }
+});
+
+$("sheetSelect").addEventListener("change", ()=>{
+  if(!wbCache) return;
+  const name = $("sheetSelect").value;
+  const {header, rows} = sheetToTable(wbCache, name);
+  columns = header;
+  rawTable = rows;
+  afterLoaded();
+  toast(`Planilha '${name}' carregada.`);
+});
+
+function afterLoaded(){
+  $("pillStatus").textContent = `Arquivo carregado • ${rawTable.length.toLocaleString("pt-BR")} linhas`;
+  // habilita selects e preenche
+  const selects = ["colSite","colLat","colLon","colDate","colValue","btnApply","btnAuto"];
+  selects.forEach(id=>{
+    if($(id).tagName==="SELECT") $(id).disabled = false;
+    else $(id).disabled = false;
+  });
+
+  fillSelect($("colSite"), columns);
+  fillSelect($("colLat"), columns);
+  fillSelect($("colLon"), columns);
+  fillSelect($("colDate"), columns);
+  fillSelect($("colValue"), columns);
+
+  autoDetect();
+}
+
+$("btnAuto").addEventListener("click", autoDetect);
+
+$("btnApply").addEventListener("click", ()=>{
+  buildPrepared();
+  if(!prepared.length){
+    toast("Não achei linhas válidas. Verifique colunas e tipos (lat/lon/data/valor).");
+    return;
+  }
+
+  // datas default
+  const allDates = prepared.map(r=>r.dateISO).sort();
+  $("dateStart").value = allDates[0];
+  $("dateEnd").value = allDates[allDates.length-1];
+
+  renderSitesList();
+  refreshAll();
+
+  $("pillStatus").textContent = "Dados prontos ✅";
+  toast("Mapa e análises montados.");
+});
+
+$("dateStart").addEventListener("change", refreshAll);
+$("dateEnd").addEventListener("change", refreshAll);
+
+$("btnSelectAll").addEventListener("click", ()=>{
+  selectedSites = new Set(Array.from(sites.keys()));
+  // marca todos checkboxes
+  document.querySelectorAll("#sitesList input[type=checkbox]").forEach(cb=>cb.checked=true);
+  refreshAll();
+});
+$("btnSelectNone").addEventListener("click", ()=>{
+  selectedSites = new Set();
+  document.querySelectorAll("#sitesList input[type=checkbox]").forEach(cb=>cb.checked=false);
+  refreshAll();
+});
+$("btnFit").addEventListener("click", ()=>{
+  const bounds=[];
+  for(const [site,obj] of sites.entries()){
+    if(!selectedSites.has(site)) continue;
+    bounds.push([obj.lat,obj.lon]);
+  }
+  if(bounds.length) map.fitBounds(bounds, {padding:[30,30]});
+});
+
+$("btnReset").addEventListener("click", ()=>{
+  rawTable = []; columns = []; mapped=null; prepared=[]; sites=new Map(); selectedSites=new Set();
+  $("fileInput").value = "";
+  $("sheetSelect").innerHTML = ""; $("sheetSelect").disabled = true;
+  ["colSite","colLat","colLon","colDate","colValue"].forEach(id=>{
+    $(id).innerHTML = ""; $(id).disabled = true;
+  });
+  ["btnApply","btnAuto","btnSelectAll","btnSelectNone","btnFit","dateStart","dateEnd"].forEach(id=> $(id).disabled=true);
+  $("sitesList").innerHTML="";
+  $("pillStatus").textContent="Sem dados carregados";
+  $("pillMeta").textContent="—";
+  clusterLayer.clearLayers();
+  chart.data.labels=[]; chart.data.datasets=[]; chart.update();
+  renderKPIs();
+  toast("Reset feito.");
+});
+
+$("btnDemo").addEventListener("click", ()=>{
+  // cria um dataset demo
+  const demo = [];
+  const sitesDemo = [
+    {site:"Ponto 01", lat:-16.073, lon:-57.681},
+    {site:"Ponto 02", lat:-16.150, lon:-57.700},
+    {site:"Ponto 03", lat:-15.600, lon:-56.100},
+    {site:"Ponto 04", lat:-17.780, lon:-57.450}
+  ];
+  const start = new Date(2024,0,1).getTime();
+  for(const s of sitesDemo){
+    for(let i=0;i<90;i++){
+      const d = new Date(start + i*24*3600*1000);
+      demo.push({
+        Local: s.site,
+        Latitude: s.lat,
+        Longitude: s.lon,
+        Data: `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`,
+        CO2_flux: (Math.sin(i/9)+1)*50 + (Math.random()*8),
+        Temp: 28 + Math.sin(i/6)*2 + Math.random()
+      });
+    }
+  }
+  rawTable = demo;
+  columns = Object.keys(demo[0]);
+
+  $("pillStatus").textContent = `Demo carregada • ${rawTable.length.toLocaleString("pt-BR")} linhas`;
+
+  ["colSite","colLat","colLon","colDate","colValue"].forEach(id=> $(id).disabled=false);
+  ["btnApply","btnAuto"].forEach(id=> $(id).disabled=false);
+
+  fillSelect($("colSite"), columns, "Local");
+  fillSelect($("colLat"), columns, "Latitude");
+  fillSelect($("colLon"), columns, "Longitude");
+  fillSelect($("colDate"), columns, "Data");
+  fillSelect($("colValue"), columns, "CO2_flux");
+
+  toast("Demo pronta. Clique em 'Aplicar e montar mapa'.");
+});
+
+/* init */
+initMap();
+initChart();
+renderKPIs();
+</script>
+</body>
+</html>
