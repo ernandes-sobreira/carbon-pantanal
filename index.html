@@ -111,6 +111,12 @@
       font-size:11px;
     }
     #map{height: 520px; width:100%;}
+    .analysis-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .analysis-card{min-width:0;background:#11151b;border:1px solid var(--stroke);border-radius:14px;padding:12px}
+    .analysis-title{font-size:13px;color:var(--soft);font-weight:700}
+    .analysis-note{font-size:11px;color:var(--muted);margin:4px 0 8px}
+    .analysis-canvas{height:240px;position:relative}
+    @media(max-width:760px){.analysis-row{grid-template-columns:1fr}.analysis-canvas{height:220px}}
     .stat{
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -271,7 +277,7 @@
 
       <div class="divider"></div>
 
-      <div class="hint">Locais (marque para incluir na análise e no gráfico):</div>
+      <div class="hint">Locais (marque para incluir nos gráficos e no heatmap). O calor representa a quantidade de registros por local.</div>
       <div class="sites" id="sitesList" style="margin-top:8px"></div>
     </div>
   </div>
@@ -281,6 +287,7 @@
     <div class="hd">
       <div class="ttl">Mapa e análises</div>
       <div class="row">
+        <button class="btn small ghost" id="btnHeat" disabled title="Cores mais quentes indicam mais registros, não fluxo mais intenso.">Heatmap de localização</button>
         <span class="pill" id="pillMeta">—</span>
       </div>
     </div>
@@ -312,10 +319,22 @@
         </div>
       </div>
 
+      <div class="analysis-row">
+        <section class="analysis-card">
+          <div class="analysis-title">Média da variável por local</div>
+          <div class="analysis-note">Compara os locais selecionados; exibe até 15 com registros válidos.</div>
+          <div class="analysis-canvas"><canvas id="chartSiteMean"></canvas></div>
+        </section>
+        <section class="analysis-card">
+          <div class="analysis-title">Distribuição dos valores</div>
+          <div class="analysis-note">Histograma: quantidade de registros em cada faixa da variável selecionada.</div>
+          <div class="analysis-canvas"><canvas id="chartDistribution"></canvas></div>
+        </section>
+      </div>
       <div style="margin-top:12px">
         <div class="row" style="justify-content:space-between">
           <div class="ttl">Comparação temporal (locais selecionados)</div>
-          <div class="hint">Linha por local (agregado por dia). Use poucos locais pra ficar legível.</div>
+          <div class="hint">Linha por local (média diária). Use poucos locais pra ficar legível.</div>
         </div>
         <div style="margin-top:8px">
           <canvas id="chart" height="150"></canvas>
@@ -330,6 +349,7 @@
 <!-- libs -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -972,6 +992,49 @@ $("btnDemo").addEventListener("click", ()=>{
 initMap();
 initChart();
 renderKPIs();
+</script>
+<script>
+let analysisMeanChart, analysisDistributionChart, carbonHeatLayer=null, carbonHeatEnabled=false;
+function initCarbonAnalysisCharts(){
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#a8b0bf"},grid:{color:"rgba(255,255,255,.06)"}},y:{ticks:{color:"#a8b0bf"},grid:{color:"rgba(255,255,255,.06)"}}}};
+  analysisMeanChart=new Chart($("chartSiteMean"),{type:"bar",data:{labels:[],datasets:[{label:"Média",data:[],backgroundColor:"rgba(159,211,159,.76)",borderColor:"#9fd39f",borderWidth:1}]},options:{...base,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>"Média: "+fmtNum(it.raw)}}}}});
+  analysisDistributionChart=new Chart($("chartDistribution"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(191,198,214,.76)",borderColor:"#bfc6d6",borderWidth:1}]},options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
+  carbonHeatLayer=L.heatLayer([],{radius:34,blur:24,maxZoom:13,minOpacity:.35,gradient:{.15:"#3b82a0",.45:"#71b784",.72:"#e5c45f",1:"#d95f45"}});
+}
+function getCarbonSelectedRows(){
+  const out=[];
+  for(const [site,obj] of sites.entries()){if(!selectedSites.has(site))continue;for(const r of applyDateFilter(obj.rows))out.push({...r,site});}
+  return out;
+}
+function renderCarbonAnalysisCharts(){
+  if(!analysisMeanChart||!analysisDistributionChart)return;
+  const rows=getCarbonSelectedRows();
+  const groups=new Map();
+  rows.forEach(r=>{if(!groups.has(r.site))groups.set(r.site,[]);groups.get(r.site).push(r.value)});
+  const means=Array.from(groups.entries()).map(([site,v])=>({site,mean:v.reduce((a,b)=>a+b,0)/v.length})).sort((a,b)=>b.mean-a.mean).slice(0,15);
+  analysisMeanChart.data.labels=means.map(x=>x.site);analysisMeanChart.data.datasets[0].data=means.map(x=>x.mean);analysisMeanChart.update();
+  const vals=rows.map(r=>r.value).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!vals.length){analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();return;}
+  const min=vals[0],max=vals[vals.length-1],count=min===max?1:Math.min(18,Math.max(5,Math.ceil(Math.sqrt(vals.length)))),width=min===max?1:(max-min)/count;
+  const bins=Array.from({length:count},(_,i)=>({lo:min+i*width,hi:i===count-1?max:min+(i+1)*width,n:0}));
+  vals.forEach(v=>bins[min===max?0:Math.min(count-1,Math.floor((v-min)/width))].n++);
+  analysisDistributionChart.data.labels=bins.map(b=>min===max?fmtNum(min):fmtNum(b.lo)+"–"+fmtNum(b.hi));
+  analysisDistributionChart.data.datasets[0].data=bins.map(b=>b.n);analysisDistributionChart.update();
+}
+function renderCarbonHeatmap(){
+  if(!carbonHeatLayer||!carbonHeatEnabled)return;
+  const points=[];let maxCount=0;
+  for(const [site,obj] of sites.entries()){if(!selectedSites.has(site)||!Number.isFinite(obj.lat)||!Number.isFinite(obj.lon))continue;const n=applyDateFilter(obj.rows).length;if(!n)continue;points.push({lat:obj.lat,lon:obj.lon,n});maxCount=Math.max(maxCount,n);}
+  carbonHeatLayer.setLatLngs(points.map(p=>[p.lat,p.lon,Math.log1p(p.n)/Math.log1p(maxCount)]));
+  if(!map.hasLayer(carbonHeatLayer))carbonHeatLayer.addTo(map);
+}
+initCarbonAnalysisCharts();
+const baseRefreshAll=refreshAll;
+refreshAll=function(){baseRefreshAll();renderCarbonAnalysisCharts();renderCarbonHeatmap();};
+const baseRenderSitesList=renderSitesList;
+renderSitesList=function(){baseRenderSitesList();$("btnHeat").disabled=false;};
+$("btnHeat").addEventListener("click",()=>{carbonHeatEnabled=!carbonHeatEnabled;$("btnHeat").textContent=carbonHeatEnabled?"Ocultar heatmap":"Heatmap de localização";if(carbonHeatEnabled)renderCarbonHeatmap();else if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);});
+$("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);$("btnHeat").textContent="Heatmap de localização";$("btnHeat").disabled=true;if(analysisMeanChart){analysisMeanChart.data.labels=[];analysisMeanChart.data.datasets[0].data=[];analysisMeanChart.update();analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();}});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
 <script>
