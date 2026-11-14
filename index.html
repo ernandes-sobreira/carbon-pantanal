@@ -274,6 +274,22 @@ button,.btn{border-radius:10px}
 .heat-legend i{background:linear-gradient(90deg,#3659d9,#7655d8,#d34f94,#f1834d,#f0c446)}
 .site-item:hover{background:#f3f1ff;border-color:#e0dafc}
 canvas{background:transparent}
+
+    .workflow-card{background:linear-gradient(145deg,#f2efff,#fff 54%,#e9f7fa);border:1px solid #ddd6fb;border-radius:15px;padding:14px;margin-bottom:15px}
+    .workflow-title{font-size:17px;font-weight:800;color:#45339b;margin-bottom:5px}
+    .workflow-card p{margin:4px 0 12px}
+    .auth-inline{padding:10px;border-radius:12px;background:#fff;border:1px solid #e8e3fb;margin:10px 0}
+    .auth-caption{font-size:12px;color:#667085;margin-bottom:8px}
+    .auth-grid{display:grid;grid-template-columns:1fr;gap:7px}
+    .auth-grid input{min-width:0;width:100%;padding:9px 10px;border-radius:9px}
+    .auth-active{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:#e9f7ef;border-radius:10px;color:#24634b;margin:10px 0}
+    .workflow-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}
+    .upload-btn{cursor:pointer}
+    .workflow-status{font-size:12px;padding:9px 10px;border-radius:9px;background:#fff7e2;color:#745617;margin-top:10px}
+    #masterPreview:empty{display:none}
+    .import-submit{margin-top:9px;width:100%}
+    .legacy-import{display:none!important}
+    @media(max-width:680px){.workflow-actions>*{flex:1 1 100%;text-align:center}.auth-grid{grid-template-columns:1fr}.workflow-card{padding:12px}}
 </style>
 </head>
 
@@ -281,13 +297,13 @@ canvas{background:transparent}
 <header>
   <div class="title">
     <h1>Coletas — mapa, valores por local e comparações</h1>
-    <div class="sub">Mapa e análises a partir dos registros aprovados. Entre no portal de dados para carregar a base compartilhada.</div>
+    <div class="sub">Planilha, identificação dos pesquisadores, mapa e análises em uma única tela.</div>
   </div>
   <div class="row">
-    <a class="btn small" href="./entrada.html">Portal de dados dos alunos</a>
-    <button class="btn small" id="btnSyncDb">Sincronizar banco</button>
+    
+    <button class="btn small" id="btnSyncDb">Atualizar resultados</button>
     <span class="pill" id="pillStatus">Conectando ao banco…</span>
-    <button class="btn small ghost" id="btnDemo">Carregar demo</button>
+    <button class="btn small ghost" id="btnDemo" style="display:none">Carregar demo</button>
   </div>
 </header>
 
@@ -299,6 +315,26 @@ canvas{background:transparent}
       <button class="btn small" id="btnReset">Reset</button>
     </div>
     <div class="bd">
+      <div class="workflow-card" id="planilha">
+        <div class="workflow-title">Planilha-mãe do projeto</div>
+        <p class="hint">Baixe a base atual, acrescente medições em novas linhas sem preencher o ID e envie o arquivo de volta. O sistema ignora os IDs que já existem e inclui apenas os novos registros.</p>
+        <div id="authForm" class="auth-inline">
+          <div class="auth-caption">Entre nesta tela para enviar dados e ver os nomes dos pesquisadores.</div>
+          <div class="auth-grid"><input id="dashName" autocomplete="name" placeholder="Nome completo (somente para criar conta)"><input id="dashEmail" type="email" autocomplete="email" placeholder="E-mail"><input id="dashPassword" type="password" autocomplete="current-password" placeholder="Senha"></div>
+          <div class="row"><button class="btn small" id="dashLogin">Entrar</button><button class="btn small ghost" id="dashSignup">Criar conta</button><span id="dashAuthMsg" class="hint"></span></div>
+        </div>
+        <div id="authActive" class="auth-active" style="display:none"><span id="dashWelcome"></span><button class="btn small ghost" id="dashSignOut">Sair</button></div>
+        <div class="workflow-actions">
+          <button class="btn" id="downloadMaster">Baixar planilha-mãe</button>
+          <label class="btn upload-btn" for="masterFile">Selecionar planilha preenchida</label>
+          <input type="file" id="masterFile" accept=".xlsx,.xls,.csv" hidden>
+        </div>
+        <div class="hint">O download pede a senha <b>LEFA2026</b>. A planilha aceita Excel ou CSV e pode conter a base atual mais as novas linhas.</div>
+        <div id="masterStatus" class="workflow-status" aria-live="polite">A base compartilhada carrega automaticamente. Para enviar dados, entre nesta tela.</div>
+        <div id="masterPreview" class="hint"></div>
+        <button class="btn import-submit" id="importMaster" disabled>Subir planilha e atualizar resultados</button>
+      </div>
+      <div class="legacy-import" style="display:none" aria-hidden="true">
       <div class="grid2">
         <div>
           <label>Arquivo (CSV ou XLSX)</label>
@@ -347,7 +383,8 @@ canvas{background:transparent}
 
       <div class="divider"></div>
 
-      <div class="ttl" style="font-size:13px; color:var(--soft); margin-bottom:8px">2) Filtros e seleção de locais</div>
+      </div>
+<div class="ttl" style="font-size:13px; color:var(--soft); margin-bottom:8px">Filtros e seleção de locais</div>
 
       <div class="grid2">
         <div>
@@ -435,7 +472,7 @@ canvas{background:transparent}
       <section class="analysis-card researcher-analysis">
         <div class="analysis-title">Registros por pesquisador</div>
         <div class="analysis-note">Medições aprovadas atribuídas a cada pessoa nos filtros atuais.</div>
-        <div class="analysis-canvas"><div class="chart-empty" id="emptyResearchers">Os nomes aparecem após entrar no portal de dados.</div><canvas id="chartResearchers"></canvas></div>
+        <div class="analysis-canvas"><div class="chart-empty" id="emptyResearchers">Entre nesta tela para ver os nomes dos pesquisadores.</div><canvas id="chartResearchers"></canvas></div>
       </section>
       <div class="temporal-analysis">
         <div class="row" style="justify-content:space-between">
@@ -773,7 +810,7 @@ function renderMap(){
           <b>Máximo:</b> ${fmtNum(stats.max)}<br/>
           <b>Média:</b> ${fmtNum(stats.mean)} • <b>n</b> = ${stats.n}
         </div>
-        <div style="font-size:12px;margin-bottom:6px"><b>Pesquisadores:</b> ${authors.length?authors.map(escapeHTML).join(", "):"entre no portal para ver nomes"}</div>
+        <div style="font-size:12px;margin-bottom:6px"><b>Pesquisadores:</b> ${authors.length?authors.map(escapeHTML).join(", "):"entre nesta tela para ver nomes"}</div>
         <div style="font-size:11px;color:#68756b">Ponto geográfico correspondente às coordenadas cadastradas.</div>
       </div>
     `;
@@ -1180,7 +1217,7 @@ function populateDashboardFilters(){
   const sets={researcherFilter:new Set(),projectFilter:new Set()};
   rawTable.forEach(r=>{if(r["Pesquisador"]&&r["Pesquisador"]!=="Autor não identificado")sets.researcherFilter.add(r["Pesquisador"]);if(r["Projeto"]&&r["Projeto"]!=="Não informado")sets.projectFilter.add(r["Projeto"]);});
   Object.entries(sets).forEach(([id,set])=>{const el=$(id);el.replaceChildren(new Option("Todos",""));Array.from(set).sort((a,b)=>a.localeCompare(b,"pt-BR")).forEach(v=>el.add(new Option(v,v)));el.disabled=set.size===0;});
-  $("emptyResearchers").textContent=sets.researcherFilter.size?"Sem registros de pessoas para os filtros atuais.":"Entre pelo portal de dados para visualizar e filtrar pelos pesquisadores.";
+  $("emptyResearchers").textContent=sets.researcherFilter.size?"Sem registros de pessoas para os filtros atuais.":"Entre nesta tela para visualizar e filtrar pelos pesquisadores.";
 }
 initCarbonAnalysisCharts();
 const baseRefreshAll=refreshAll;
@@ -1249,13 +1286,13 @@ $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHea
         };
       });
       if(!rows.length){
-        status.textContent=session?"Nenhum registro aprovado":"Entre no portal para ver os dados";
-        $("siteStatsBody").innerHTML='<tr><td colspan="7">Entre no portal dos alunos e sincronize para carregar os locais e estatísticas.</td></tr>';
-        $("emptySiteMean").textContent="Entre no portal e sincronize para comparar os locais.";
-        $("emptyDistribution").textContent="Entre no portal e sincronize para ver a distribuição.";
-        $("emptyTemporal").textContent="Entre no portal e sincronize para ver as séries temporais.";
-        $("emptyResearchers").textContent="Entre no portal de dados para visualizar os pesquisadores.";
-        if(!session) toast("Para carregar os locais, valores e nomes dos pesquisadores, entre no portal de dados e volte a esta página.");
+        status.textContent=session?"Nenhum registro aprovado":"Entre nesta página para ver os dados";
+        $("siteStatsBody").innerHTML='<tr><td colspan="7">Entre nesta mesma tela para ver o mapa e as análises.</td></tr>';
+        $("emptySiteMean").textContent="Importe uma planilha para comparar os locais.";
+        $("emptyDistribution").textContent="Importe uma planilha para ver a distribuição.";
+        $("emptyTemporal").textContent="Importe uma planilha para ver as séries temporais.";
+        $("emptyResearchers").textContent="Entre nesta página para visualizar os pesquisadores.";
+        if(!session) toast("Para carregar os locais, valores e nomes dos pesquisadores, entre nesta mesma tela para carregar os nomes.");
         else toast("Esta conta não encontrou registros aprovados visíveis.");
         return;
       }
@@ -1275,15 +1312,49 @@ $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHea
       carbonHeatEnabled=true;$id("btnHeat").textContent="Ocultar heatmap";$id("btnHeat").setAttribute("aria-pressed","true");$id("heatLegend").classList.add("show");renderCarbonHeatmap();
       const missingCoords=rows.filter(r=>!Number.isFinite(Number(r.Latitude))||!Number.isFinite(Number(r.Longitude))).length;
       status.textContent=`Base pronta • ${records.length.toLocaleString("pt-BR")} registros aprovados`;
-      toast(`Painel atualizado: ${records.length.toLocaleString("pt-BR")} registros, ${sites.size} locais.${withNames?" Pesquisadores identificados.":" Entre pelo portal para carregar os nomes."}${missingCoords?` ${missingCoords} sem coordenadas (mantidos nas estatísticas).`:""}`);
+      toast(`Painel atualizado: ${records.length.toLocaleString("pt-BR")} registros, ${sites.size} locais.${withNames?" Pesquisadores identificados.":" Entre nesta página para carregar os nomes."}${missingCoords?` ${missingCoords} sem coordenadas (mantidos nas estatísticas).`:""}`);
     }catch(error){
       console.error(error);status.textContent="Falha ao sincronizar";
       toast("Falha ao sincronizar: "+(error?.message||"erro de leitura ou montagem dos dados"),true);
     }finally{button.disabled=false;}
   }
   $id("btnSyncDb").addEventListener("click",loadCarbonProject);
+  window.carbonPantanalDb=db;window.carbonPantanalReload=loadCarbonProject;
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",loadCarbonProject,{once:true});
   else loadCarbonProject();
+})();
+</script>
+
+<script>
+(function(){
+ const SB_URL="https://lyaettnqmkiygxgetbqf.supabase.co", SB_KEY="sb_publishable_4_t_C4Ry673olIFl7Ecn0g_3y-Abwmp";
+ const api=window.carbonPantanalDb||window.supabase.createClient(SB_URL,SB_KEY), $=id=>document.getElementById(id);
+ let user=null, displayName="", staged=[], selectedFileName="";
+ const headers=["ID do registro","Tipo","Data (AAAA-MM-DD)","Pesquisador","Projeto","Local","Município / região","Latitude decimal","Longitude decimal","Ponto","Réplica","Tratamento","Câmara","Fluxo CO2 (mg/m2/dia)","Estado do solo","pH do solo","Temperatura do solo (°C)","Matéria orgânica do solo","Condutividade do solo","Período sazonal","Compartimento da água","Temperatura da água (°C)","Oxigênio dissolvido (mg/L)","pH da água","Condutividade da água (µS/cm)","Oxigênio dissolvido (%)","Observações"];
+ const keys=["id","type","date","student","project","site","locality","lat","lon","point","replicate","treatment","chamber","flux","soil_state","soil_ph","soil_temp","soil_om","soil_cond","season","water_compartment","water_temp","do_mg","water_ph","water_cond","do_pct","notes"];
+ const normalize=x=>String(x??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+ const aliases={"id do registro":"id","id":"id","compartimento":"type","tipo":"type","data aaaa mm dd":"date","data aaaammdd":"date","data":"date","pesquisador":"student","autor":"student","aluno":"student","projeto":"project","projeto campanha":"project","local":"site","municipio regiao":"locality","municipio":"locality","latitude decimal":"lat","latitude":"lat","longitude decimal":"lon","longitude":"lon","ponto":"point","codigo do ponto":"point","replica":"replicate","tratamento":"treatment","camara":"chamber","fluxo co2 mg m2 dia":"flux","fluxo co2 mg m2 day":"flux","fluxo co2":"flux","co2 flux mg m2 day":"flux","estado do solo":"soil_state","ph do solo":"soil_ph","temperatura do solo c":"soil_temp","materia organica do solo":"soil_om","materia organica":"soil_om","condutividade do solo":"soil_cond","periodo sazonal":"season","compartimento da agua":"water_compartment","temperatura da agua c":"water_temp","oxigenio dissolvido mg l":"do_mg","od da agua mg l":"do_mg","ph da agua":"water_ph","ph":"water_ph","condutividade da agua s cm":"water_cond","cond s cm":"water_cond","oxigenio dissolvido":"do_pct","od da agua":"do_pct","observacoes":"notes"};
+ const status=(msg,bad=false)=>{const n=$("masterStatus");n.textContent=msg;n.style.background=bad?"#fff0f1":"#fff7e2";n.style.color=bad?"#96374b":"#745617"};
+ function setAuthUI(){const form=$("authForm"),active=$("authActive");if(user){form.style.display="none";active.style.display="flex";$("dashWelcome").textContent="Conectado: "+(displayName||user.email)}else{form.style.display="block";active.style.display="none"}}
+ async function refreshAuth(){const {data}=await api.auth.getSession();user=data.session?.user||null;displayName=user?.user_metadata?.full_name||user?.email||"";if(user){const p=await api.from("carbon_profiles").select("display_name,active").eq("user_id",user.id).maybeSingle();if(p.data?.display_name)displayName=p.data.display_name}setAuthUI()}
+ async function login(){const {data,error}=await api.auth.signInWithPassword({email:$("dashEmail").value.trim(),password:$("dashPassword").value});if(error){$("dashAuthMsg").textContent=error.message;return}user=data.user;await refreshAuth();$("dashPassword").value="";$("dashAuthMsg").textContent="Login efetuado. Atualizando o painel…";$("btnSyncDb").click()}
+ async function signup(){const name=$("dashName").value.trim(),email=$("dashEmail").value.trim(),password=$("dashPassword").value;if(!name||!email||!password){$("dashAuthMsg").textContent="Informe nome, e-mail e senha para criar a conta.";return}if(password.length<8){$("dashAuthMsg").textContent="A senha precisa ter pelo menos 8 caracteres.";return}const {data,error}=await api.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:location.href}});$("dashAuthMsg").textContent=error?error.message:(data.session?"Conta criada e conectada.":"Conta criada. Confirme o e-mail e depois entre nesta mesma tela.");if(data.session){user=data.user;await refreshAuth();$("btnSyncDb").click()}}
+ $("dashLogin").onclick=login;$("dashSignup").onclick=signup;
+ $("dashSignOut").onclick=async()=>{await api.auth.signOut();user=null;displayName="";setAuthUI();$("btnSyncDb").click()};
+ api.auth.onAuthStateChange((_event,session)=>{user=session?.user||null;displayName=user?.user_metadata?.full_name||user?.email||"";setTimeout(()=>{setAuthUI();if(user)$("btnSyncDb").click()},0)});
+ function parseCSV(text){text=text.replace(/^\uFEFF/,"");const first=text.split(/\r?\n/,1)[0]||"";const delims=[";",",",String.fromCharCode(9)];const sep=delims.sort((a,b)=>first.split(b).length-first.split(a).length)[0];const out=[];let row=[],cell="",quote=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'&&quote&&text[i+1]==='"'){cell+='"';i++}else if(c==='"'){quote=!quote}else if(c===sep&&!quote){row.push(cell);cell=""}else if((c==="\n"||c==="\r")&&!quote){if(c==="\r"&&text[i+1]==="\n")i++;row.push(cell);if(row.some(v=>String(v).trim()))out.push(row);row=[];cell=""}else cell+=c}row.push(cell);if(row.some(v=>String(v).trim()))out.push(row);return out}
+ function dateValue(v){if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);if(typeof v==="number"&&v>20000&&v<80000){const d=XLSX.SSF.parse_date_code(v);return d?String(d.y).padStart(4,"0")+"-"+String(d.m).padStart(2,"0")+"-"+String(d.d).padStart(2,"0"):""}const t=String(v??"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t;const m=t.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);return m?m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"):""}
+ function numberValue(v){if(v===null||v===undefined||String(v).trim()==="")return null;if(typeof v==="number")return Number.isFinite(v)?v:NaN;const t=String(v).trim().replace(/\s/g,""),n=Number(t.includes(",")&&!t.includes(".")?t.replace(",","."):t);return Number.isFinite(n)?n:NaN}
+ async function matrixFile(file){if(/\.csv$/i.test(file.name))return parseCSV(await file.text());const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true});const name=wb.SheetNames.find(x=>normalize(x)==="base")||wb.SheetNames.find(x=>normalize(x).includes("base"))||wb.SheetNames.find(x=>normalize(x)==="dados")||wb.SheetNames[0];return XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:"",raw:true})}
+ async function validateFile(){const file=$("masterFile").files[0];staged=[];$("importMaster").disabled=true;$("masterPreview").textContent="";if(!file){status("Selecione uma planilha.",true);return}selectedFileName=file.name;status("Lendo e conferindo "+file.name+"…");try{const m=await matrixFile(file);if(m.length<2)throw Error("A planilha não tem linhas de dados.");const h=m[0].map(x=>aliases[normalize(x)]||normalize(x)),idx=Object.fromEntries(keys.map(k=>[k,h.indexOf(k)]));for(const k of ["type","date","site","lat","lon","flux"])if(idx[k]<0)throw Error("Não encontrei as colunas obrigatórias. Baixe a planilha-mãe deste dashboard e use o mesmo cabeçalho.");const all=m.slice(1).map((cells,i)=>{const o={};for(const k of keys)o[k]=idx[k]<0?"":cells[idx[k]]??"";o._row=i+2;return o}).filter(o=>keys.some(k=>String(o[k]??"").trim()!==""));const errors=[],newRows=[],ids=[];for(const o of all){const line=o._row,id=String(o.id??"").trim();if(id){ids.push(id);continue}const kind=normalize(o.type),type=["solo","soil"].includes(kind)?"soil":["agua","water"].includes(kind)?"water":null,d=dateValue(o.date),site=String(o.site??"").trim(),lat=numberValue(o.lat),lon=numberValue(o.lon),flux=numberValue(o.flux);if(!type)errors.push("Linha "+line+": tipo precisa ser Solo ou Água.");if(!d)errors.push("Linha "+line+": data inválida.");if(!site)errors.push("Linha "+line+": local obrigatório.");if(!Number.isFinite(lat)||lat < -90||lat>90)errors.push("Linha "+line+": latitude inválida.");if(!Number.isFinite(lon)||lon < -180||lon>180)errors.push("Linha "+line+": longitude inválida.");if(!Number.isFinite(flux))errors.push("Linha "+line+": fluxo CO₂ precisa ser numérico.");const numFields=["replicate","soil_ph","soil_temp","soil_om","soil_cond","water_temp","do_mg","water_ph","water_cond","do_pct"],nums={};for(const k of numFields){nums[k]=numberValue(o[k]);if(Number.isNaN(nums[k])||(k==="replicate"&&nums[k]!==null&&(!Number.isInteger(nums[k])||nums[k]<1)))errors.push("Linha "+line+": valor numérico inválido em "+headers[keys.indexOf(k)]+".")}if(!errors.some(e=>e.startsWith("Linha "+line+":")))newRows.push({id:null,record_type:type,sample_date:d,student_name:String(o.student??"").trim()||displayName||user?.email||"",project_name:String(o.project??"").trim()||null,site_name:site,locality:String(o.locality??"").trim()||null,latitude:lat,longitude:lon,point_code:String(o.point??"").trim()||null,replicate:nums.replicate,treatment:String(o.treatment??"").trim()||null,chamber:String(o.chamber??"").trim()||null,flux_mg_co2_m2_day:flux,soil_state:String(o.soil_state??"").trim()||null,soil_ph:nums.soil_ph,soil_temperature_c:nums.soil_temp,soil_organic_matter:nums.soil_om,soil_conductivity:nums.soil_cond,seasonal_period:String(o.season??"").trim()||null,water_compartment:String(o.water_compartment??"").trim()||null,water_temperature_c:nums.water_temp,dissolved_oxygen_mg_l:nums.do_mg,water_ph:nums.water_ph,water_conductivity_us_cm:nums.water_cond,dissolved_oxygen_percent:nums.do_pct,notes:String(o.notes??"").trim()||null,source_sheet:"Importação planilha-mãe: "+file.name,source_row:line,created_by:user.id,review_status:"approved"})}
+ if(all.length>10000)throw Error("A planilha excedeu 10.000 linhas.");if(newRows.length>500)throw Error("A planilha contém mais de 500 linhas novas. Envie até 500 novas medições por arquivo.");const uniq=[...new Set(ids)];let known=new Set();if(uniq.length){for(let p=0;p<uniq.length;p+=500){const {data,error}=await api.from("carbon_records").select("id").in("id",uniq.slice(p,p+500));if(error)throw error;(data||[]).forEach(x=>known.add(x.id))}}const unknown=uniq.filter(id=>!known.has(id));unknown.slice(0,25).forEach(id=>errors.push("ID não encontrado na base: "+id));const preview=document.createElement("div");preview.textContent=known.size+" linha(s) já existentes serão ignoradas; "+newRows.length+" linha(s) nova(s) prontas para importar."+(errors.length?" "+errors.length+" erro(s) devem ser corrigidos.":"");$("masterPreview").replaceChildren(preview);if(errors.length){const list=document.createElement("ul");list.style.margin="6px 0";list.style.paddingLeft="20px";errors.slice(0,30).forEach(x=>{const li=document.createElement("li");li.textContent=x;list.append(li)});$("masterPreview").append(list)}if(errors.length){status("Corrija a planilha e selecione novamente.",true);staged=[]}else{staged=newRows;status(newRows.length?newRows.length+" nova(s) linha(s) pronta(s).":"Nenhuma linha nova para incluir.");$("importMaster").disabled=!newRows.length}}catch(e){staged=[];$("masterPreview").textContent="";status(e.message||"Não foi possível ler a planilha.",true)}}
+ $("masterFile").addEventListener("change",validateFile);
+ async function uploadMaster(){if(!user){status("Entre nesta página com seu e-mail e senha para enviar a planilha.",true);return}if(!staged.length)return;const b=$("importMaster");b.disabled=true;b.textContent="Importando…";try{const {data:siteRows,error:siteErr}=await api.from("carbon_sites").select("id,site_name,locality,latitude,longitude");if(siteErr)throw siteErr;const sites=siteRows||[],newSites=new Map(),records=[];for(const r of staged){const k=[normalize(r.site_name),Number(r.latitude).toFixed(6),Number(r.longitude).toFixed(6)].join("|");let site=sites.find(x=>normalize(x.site_name)===normalize(r.site_name)&&x.latitude!=null&&x.longitude!=null&&Math.abs(Number(x.latitude)-r.latitude)<0.00001&&Math.abs(Number(x.longitude)-r.longitude)<0.00001)||newSites.get(k);if(!site){const {data,error}=await api.from("carbon_sites").insert({site_name:r.site_name,locality:r.locality,latitude:r.latitude,longitude:r.longitude,project_name:r.project_name,created_by:user.id}).select("id,site_name,locality,latitude,longitude").single();if(error)throw Error("Local "+r.site_name+": "+error.message);site=data;newSites.set(k,site)}records.push({...r,site_id:site.id});delete records[records.length-1].site_name;delete records[records.length-1].locality;delete records[records.length-1].latitude;delete records[records.length-1].longitude}
+for(let p=0;p<records.length;p+=250){const {error}=await api.from("carbon_records").insert(records.slice(p,p+250));if(error)throw error}staged=[];$("masterFile").value="";$("masterPreview").textContent="";status(records.length+" medição(ões) incluída(s). Atualizando mapa, heatmap, pessoas e estatísticas.");b.textContent="Subir planilha e atualizar resultados";await new Promise(r=>setTimeout(r,500));$("btnSyncDb").click()}catch(e){status("A importação não foi concluída: "+(e.message||"erro no banco"),true)}finally{b.textContent="Subir planilha e atualizar resultados";b.disabled=!staged.length}}
+ $("importMaster").onclick=uploadMaster;
+ async function downloadMaster(){const pass=window.prompt("Senha para baixar a planilha-mãe:");if(pass===null)return;const b=$("downloadMaster");b.disabled=true;b.textContent="Validando senha…";try{const {data,error}=await api.rpc("carbon_master_export",{p_password:pass.trim()});if(error)throw error;const source=Array.isArray(data)?data:[];const rows=source.map(r=>({"ID do registro":r.id||"","Tipo":r.record_type==="soil"?"Solo":"Água","Data (AAAA-MM-DD)":r.sample_date||(r.collection_year?String(r.collection_year)+"-01-01":""),"Pesquisador":r.student_name||"","Projeto":r.project_name||"","Local":r.site_name||"","Município / região":r.locality||"","Latitude decimal":r.latitude??"","Longitude decimal":r.longitude??"","Ponto":r.point_code||"","Réplica":r.replicate??"","Tratamento":r.treatment||"","Câmara":r.chamber||"","Fluxo CO2 (mg/m2/dia)":r.flux_mg_co2_m2_day??"","Estado do solo":r.soil_state||"","pH do solo":r.soil_ph??"","Temperatura do solo (°C)":r.soil_temperature_c??"","Matéria orgânica do solo":r.soil_organic_matter??"","Condutividade do solo":r.soil_conductivity??"","Período sazonal":r.seasonal_period||"","Compartimento da água":r.water_compartment||"","Temperatura da água (°C)":r.water_temperature_c??"","Oxigênio dissolvido (mg/L)":r.dissolved_oxygen_mg_l??"","pH da água":r.water_ph??"","Condutividade da água (µS/cm)":r.water_conductivity_us_cm??"","Oxigênio dissolvido (%)":r.dissolved_oxygen_percent??"","Observações":r.notes||""}));rows.push(Object.fromEntries(headers.map(h=>[h,""])));const wb=XLSX.utils.book_new();const notes=[["PLANILHA-MÃE · CARBON PANTANAL"],["Mantenha os IDs das linhas existentes; não altere nem apague essas linhas."],["Para incluir dados, acrescente novas linhas ao final e deixe ID do registro vazio."],["Preencha Tipo (Solo/Água), Data, Pesquisador, Local, Latitude, Longitude e Fluxo CO2."],["Use coordenadas decimais negativas para sul/oeste. Uma linha corresponde a uma medição."],["Envie por esta mesma tela. IDs existentes serão ignorados; só linhas novas serão incluídas."]];const guide=XLSX.utils.aoa_to_sheet(notes);guide["!cols"]=[{wch:105}];const ws=XLSX.utils.json_to_sheet(rows,{header:headers});ws["!cols"]=headers.map(h=>({wch:Math.min(32,Math.max(13,h.length+2))}));ws["!freeze"]={xSplit:0,ySplit:1};XLSX.utils.book_append_sheet(wb,guide,"Orientações");XLSX.utils.book_append_sheet(wb,ws,"BASE");XLSX.writeFile(wb,"Carbon_Pantanal_planilha_mae.xlsx");status("Planilha-mãe baixada. Acrescente linhas vazias de ID e envie o arquivo nesta mesma tela.")}catch(e){status("Não foi possível baixar a base: "+(e.message||e),true)}finally{b.disabled=false;b.textContent="Baixar planilha-mãe"}}
+ $("downloadMaster").onclick=downloadMaster;
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",refreshAuth,{once:true});else refreshAuth();
 })();
 </script>
 </body>
