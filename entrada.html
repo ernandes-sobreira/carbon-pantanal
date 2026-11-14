@@ -70,13 +70,14 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;b
 <div class="row full"><button id="saveRecord">Salvar medição</button><span class="muted">O fluxo aceita valores negativos e positivos. Confira a unidade antes de enviar.</span></div>
 </div></section>
 <section id="adminPanel" class="card hidden"><div class="row"><h2>Conferência de registros</h2><span id="pendingCount" class="pill right">0 pendentes</span></div><div class="tablewrap"><table><thead><tr><th>Data</th><th>Aluno</th><th>Local</th><th>Tipo</th><th>Fluxo</th><th>Ação</th></tr></thead><tbody id="pendingBody"></tbody></table></div></section>
-<section class="card"><div class="row"><div><h2>Mapa e dados aprovados</h2><div class="muted">Selecione um ponto para ver o local e o número de medições.</div></div><button id="exportCsv" class="secondary right">Baixar CSV</button></div><div id="map" class="section"></div>
+<section class="card"><div class="row"><div><h2>Mapa e dados aprovados</h2><div class="muted">Selecione um ponto para ver o local e o número de medições.</div></div><button id="exportXlsx" class="secondary right">Baixar planilha mãe (.xlsx)</button><button id="exportCsv" class="secondary">Baixar CSV</button></div><div id="map" class="section"></div>
 <div class="grid section"><div class="field"><label for="filterType">Compartimento</label><select id="filterType"><option value="">Todos</option><option value="soil">Solo</option><option value="water">Água</option></select></div><div class="field"><label for="filterSite">Local</label><select id="filterSite"><option value="">Todos</option></select></div></div>
 <div class="tablewrap section"><table><thead><tr><th>Data</th><th>Local</th><th>Tipo</th><th>Projeto</th><th>Tratamento</th><th>Réplica</th><th>Fluxo CO₂</th></tr></thead><tbody id="recordsBody"></tbody></table></div></section>
 <section class="card"><h2>Seus envios aguardando conferência</h2><div class="tablewrap"><table><thead><tr><th>Data</th><th>Local</th><th>Tipo</th><th>Fluxo CO₂</th><th>Estado</th></tr></thead><tbody id="ownBody"></tbody></table></div></section>
 </div></main><div id="toast"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SB_URL='https://lyaettnqmkiygxgetbqf.supabase.co';
 const SB_KEY='sb_publishable_4_t_C4Ry673olIFl7Ecn0g_3y-Abwmp';
@@ -122,6 +123,55 @@ function renderAdmin(){const body=$('pendingBody');body.replaceChildren();txt($(
 async function review(id,status){const {error}=await db.from('carbon_records').update({review_status:status,reviewed_by:currentUser.id,reviewed_at:new Date().toISOString()}).eq('id',id);if(error)return toast('Falha ao atualizar: '+error.message,true);toast(status==='approved'?'Registro aprovado.':'Registro rejeitado.');await loadRecords();await loadPending();render()}
 $('filterType').onchange=render;$('filterSite').onchange=render;
 $('saveRecord').onclick=async()=>{try{if(!val('sampleDate'))throw Error('Informe a data da coleta.');let siteId=$('siteSelect').value;if(val('newSite')){const lat=num('latitude'),lon=num('longitude');if(lat===null||lon===null)throw Error('Informe latitude e longitude do novo local.');const site={site_name:val('newSite'),locality:val('locality'),latitude:lat,longitude:lon,project_name:val('projectName')};const {data,error}=await db.from('carbon_sites').upsert(site,{onConflict:'site_name,latitude,longitude'}).select('id').single();if(error)throw error;siteId=data.id}else if(!siteId)throw Error('Selecione um local ou cadastre um novo.');const soil=$('recordType').value==='soil';const row={record_type:soil?'soil':'water',sample_date:val('sampleDate'),site_id:siteId,project_name:val('projectName'),student_name:profile?.display_name||currentUser.email,point_code:val('pointCode'),replicate:num('replicate'),treatment:val('treatment'),chamber:val('chamber'),flux_mg_co2_m2_day:num('flux'),soil_state:soil?val('soilState'):null,soil_ph:soil?num('soilPH'):null,soil_temperature_c:soil?num('soilTemp'):null,soil_organic_matter:soil?num('soilOM'):null,soil_conductivity:soil?num('soilCond'):null,seasonal_period:!soil?val('season'):null,water_compartment:!soil?val('compartment'):null,water_temperature_c:!soil?num('waterTemp'):null,dissolved_oxygen_mg_l:!soil?num('do'):null,water_ph:!soil?num('waterPH'):null,water_conductivity_us_cm:!soil?num('waterCond'):null,dissolved_oxygen_percent:!soil?num('doPct'):null,notes:val('notes')};if(row.flux_mg_co2_m2_day===null)throw Error('Informe o fluxo de CO₂.');const {error}=await db.from('carbon_records').insert(row);if(error)throw error;toast('Medição salva e enviada para conferência.');['sampleDate','projectName','pointCode','replicate','treatment','chamber','flux','soilState','soilPH','soilTemp','soilOM','soilCond','season','compartment','waterTemp','do','waterPH','waterCond','doPct','notes','newSite','latitude','longitude'].forEach(id=>$(id).value='');await loadSites();await loadPending()}catch(e){toast(e.message||'Não foi possível salvar o registro.',true)}};
+$('exportXlsx').onclick=async()=>{
+ const button=$('exportXlsx');button.disabled=true;button.textContent='Preparando planilha…';
+ try{
+  const all=[];for(let from=0; ; from+=1000){
+   const {data,error}=await db.from('carbon_records')
+    .select('id,record_type,sample_date,collection_year,project_name,student_name,point_code,replicate,treatment,chamber,flux_mg_co2_m2_day,soil_state,soil_ph,soil_temperature_c,soil_organic_matter,soil_conductivity,seasonal_period,water_compartment,water_temperature_c,dissolved_oxygen_mg_l,water_ph,water_conductivity_us_cm,dissolved_oxygen_percent,source_sheet,source_row,carbon_sites(site_name,latitude,longitude)')
+    .eq('review_status','approved').order('sample_date',{ascending:true}).range(from,from+999);
+   if(error)throw error;all.push(...(data||[]));if(!data||data.length<1000)break;
+  }
+  const base=all.map(r=>({
+   'ID do registro':r.id,'Tipo':r.record_type==='soil'?'Solo':'Água',
+   'Data':r.sample_date||(r.collection_year?'Ano '+r.collection_year:''),
+   'Autor':r.student_name,'Projeto':r.project_name,'Local':r.carbon_sites?.site_name,
+   'Latitude decimal':r.carbon_sites?.latitude,'Longitude decimal':r.carbon_sites?.longitude,
+   'Ponto':r.point_code,'Réplica':r.replicate,'Tratamento':r.treatment,'Câmara':r.chamber,
+   'Fluxo CO2 (mg/m2/dia)':r.flux_mg_co2_m2_day,'Estado do solo':r.soil_state,'pH do solo':r.soil_ph,
+   'Temperatura do solo (°C)':r.soil_temperature_c,'Matéria orgânica do solo':r.soil_organic_matter,
+   'Condutividade do solo':r.soil_conductivity,'Período sazonal':r.seasonal_period,
+   'Compartimento da água':r.water_compartment,'Temperatura da água (°C)':r.water_temperature_c,
+   'OD da água (mg/L)':r.dissolved_oxygen_mg_l,'pH da água':r.water_ph,
+   'Condutividade da água (µS/cm)':r.water_conductivity_us_cm,'OD da água (%)':r.dissolved_oxygen_percent,
+   'Aba de origem':r.source_sheet,'Linha de origem':r.source_row
+  }));
+  const soil=all.filter(r=>r.record_type==='soil').map(r=>({
+   'AUTOR':r.student_name,'DATA':r.sample_date||(r.collection_year?'Ano '+r.collection_year:''),
+   'LOCAL':r.carbon_sites?.site_name,'LATITUDE decimal':r.carbon_sites?.latitude,'LONGITUDE decimal':r.carbon_sites?.longitude,
+   'PONTO':r.point_code,'TRATAMENTO':r.treatment,'ESTADO DO SOLO':r.soil_state,'pH':r.soil_ph,
+   'TEMPERATURA (°C)':r.soil_temperature_c,'MATÉRIA ORGÂNICA':r.soil_organic_matter,
+   'CONDUTIVIDADE':r.soil_conductivity,'RÉPLICA':r.replicate,'CÂMARA':r.chamber,
+   'CO2 flux (mg/m2/day)':r.flux_mg_co2_m2_day,'ABA DE ORIGEM':r.source_sheet,'LINHA DE ORIGEM':r.source_row
+  }));
+  const water=all.filter(r=>r.record_type==='water').map(r=>({
+   'AUTOR':r.student_name,'DATA':r.sample_date||(r.collection_year?'Ano '+r.collection_year:''),
+   'LOCAL':r.carbon_sites?.site_name,'LATITUDE decimal':r.carbon_sites?.latitude,'LONGITUDE decimal':r.carbon_sites?.longitude,
+   'PONTO':r.point_code,'RÉPLICA':r.replicate,'PERÍODO SAZONAL':r.seasonal_period,
+   'COMPARTIMENTO':r.water_compartment,'TRATAMENTO':r.treatment,'CÂMARA':r.chamber,
+   'Água °C':r.water_temperature_c,'OD (mg/L)':r.dissolved_oxygen_mg_l,'pH':r.water_ph,
+   'COND (µS/cm)':r.water_conductivity_us_cm,'OD (%)':r.dissolved_oxygen_percent,
+   'CO2 flux (mg/m2/day)':r.flux_mg_co2_m2_day,'ABA DE ORIGEM':r.source_sheet,'LINHA DE ORIGEM':r.source_row
+  }));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(soil),'SOLO');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(water),'ÁGUA');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(base),'BASE UNIFICADA');
+  XLSX.writeFile(wb,'CO2_PLANILHA_MAE_atualizada.xlsx');
+  toast('Planilha mãe atualizada: '+all.length.toLocaleString('pt-BR')+' registros aprovados.');
+ }catch(error){console.error(error);toast('Não foi possível gerar a planilha mãe: '+error.message,true)}
+ finally{button.disabled=false;button.textContent='Baixar planilha mãe (.xlsx)'}
+};
 $('exportCsv').onclick=()=>{const rows=approved.filter(r=>(!$('filterType').value||r.record_type===$('filterType').value)&&(!$('filterSite').value||r.site_id===$('filterSite').value));const cols=['sample_date_or_year','record_type','site','latitude','longitude','project_name','student_name','point_code','replicate','treatment','chamber','flux_mg_co2_m2_day','soil_ph','soil_temperature_c','water_temperature_c','dissolved_oxygen_mg_l','water_ph'];const quote=x=>'"'+String(x??'').replaceAll('"','""')+'"';const csv=[cols.map(quote).join(';'),...rows.map(r=>[r.sample_date||(r.collection_year?'Ano '+r.collection_year:''),r.record_type,r.carbon_sites?.site_name,r.carbon_sites?.latitude,r.carbon_sites?.longitude,r.project_name,r.student_name,r.point_code,r.replicate,r.treatment,r.chamber,r.flux_mg_co2_m2_day,r.soil_ph,r.soil_temperature_c,r.water_temperature_c,r.dissolved_oxygen_mg_l,r.water_ph].map(quote).join(';'))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='carbon-pantanal-dados.csv';a.click();URL.revokeObjectURL(a.href)};
 start();
 </script></body></html>
