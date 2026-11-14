@@ -216,12 +216,18 @@
     .wrap>.card:nth-child(2) .bd{display:flex;flex-direction:column;gap:14px}
     .wrap>.card:nth-child(2) .stat{order:1}
     .wrap>.card:nth-child(2) .analysis-row{order:2}
-    .wrap>.card:nth-child(2) #map{order:3;height:440px;border:1px solid var(--stroke);border-radius:10px}
-    .wrap>.card:nth-child(2) .heat-legend{order:4}
-    .wrap>.card:nth-child(2) .temporal-analysis{order:5;margin-top:0!important}
+    .wrap>.card:nth-child(2) .site-stats{order:3}
+    .wrap>.card:nth-child(2) #map{order:4;height:440px;border:1px solid var(--stroke);border-radius:10px}
+     .wrap>.card:nth-child(2) .heat-legend{order:5}
+    .wrap>.card:nth-child(2) .temporal-analysis{order:6;margin-top:0!important}
     .heat-legend{display:none;align-items:center;gap:9px;color:var(--muted);font-size:11px}
     .heat-legend i{display:block;width:132px;height:9px;border-radius:99px;background:linear-gradient(90deg,#3182bd,#38a89b,#8cc65d,#f2ce4a,#dc4b36)}
-    .heat-legend.show{display:flex}
+     .heat-legend.show{display:flex}
+    .site-stats{min-width:0}
+    .table-scroll{overflow-x:auto}
+    .site-stats table{width:100%;border-collapse:collapse;font-size:12px}
+    .site-stats th,.site-stats td{padding:9px 8px;border-bottom:1px solid var(--stroke);text-align:right;white-space:nowrap}
+    .site-stats th:first-child,.site-stats td:first-child{text-align:left}
     .temporal-analysis{padding-top:12px;border-top:1px solid var(--stroke)}
     .temporal-analysis .ttl{font-size:14px;color:var(--soft)}
     @media(max-width:1000px){.wrap{grid-template-columns:minmax(0,1fr) 300px}}
@@ -345,14 +351,16 @@
     <div class="hd">
       <div class="ttl">Mapa e análises</div>
       <div class="row">
-        <button class="btn small ghost" id="btnHeat" disabled title="Cores mais quentes indicam mais registros, não fluxo mais intenso.">Heatmap de localização</button>
+        <select id="heatMode" aria-label="Intensidade do mapa" style="width:auto;min-width:150px;padding:7px 9px;font-size:12px"><option value="records">Calor: coletas</option><option value="value">Calor: valor médio</option></select>
+        <button class="btn small ghost" id="btnHeat" disabled aria-pressed="false" title="Ative para ver o mapa de calor dos locais filtrados.">Mostrar heatmap</button>
         <span class="pill" id="pillMeta">—</span>
       </div>
     </div>
     <div class="bd">
+      <section class="analysis-card site-stats"><div class="analysis-title">Resumo estatístico por local</div><div class="analysis-note">n, média, mediana, mínimo e máximo da variável selecionada.</div><div class="table-scroll"><table><thead><tr><th>Local</th><th>n</th><th>Média</th><th>Mediana</th><th>Mín.</th><th>Máx.</th></tr></thead><tbody id="siteStatsBody"><tr><td colspan="6">Carregue dados para calcular o resumo por local.</td></tr></tbody></table></div></section>
       <div class="heat-legend" id="heatLegend" aria-hidden="true">
-        <span>Menos registros</span><i aria-hidden="true"></i><span>Mais registros</span>
-        <span class="hint">Densidade de coletas</span>
+        <span id="heatLow">Menos registros</span><i aria-hidden="true"></i><span id="heatHigh">Mais registros</span>
+        <span class="hint" id="heatLegendNote">Densidade de coletas</span>
       </div>
       <div id="map"></div>
 
@@ -374,11 +382,9 @@
           <div class="v" id="kpiMin">—</div>
           <div class="s" id="kpiMinSub">—</div>
         </div>
-        <div class="kpi">
-          <div class="k">Máximo (seleção)</div>
-          <div class="v" id="kpiMax">—</div>
-          <div class="s" id="kpiMaxSub">—</div>
-        </div>
+        <div class="kpi"><div class="k">Máximo (seleção)</div><div class="v" id="kpiMax">—</div><div class="s" id="kpiMaxSub">—</div></div>
+        <div class="kpi"><div class="k">Média (seleção)</div><div class="v" id="kpiMean">—</div><div class="s">Filtros atuais</div></div>
+        <div class="kpi"><div class="k">Mediana (seleção)</div><div class="v" id="kpiMedian">—</div><div class="s">Filtros atuais</div></div>
       </div>
 
       <div class="analysis-row">
