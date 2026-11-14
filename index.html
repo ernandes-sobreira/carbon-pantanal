@@ -627,12 +627,12 @@ function renderMap(){
     const stats = computeStats(filtered);
 
     const m = L.marker([obj.lat, obj.lon], { title: site });
-    const tip = `${site}\nÚltimo: ${last.dateISO} = ${fmtNum(last.value)}\nMin: ${fmtNum(stats.min)} | Máx: ${fmtNum(stats.max)} | n=${stats.n}`;
+    const tip = `${escapeHTML(site)}\nÚltimo: ${last.dateISO} = ${fmtNum(last.value)}\nMin: ${fmtNum(stats.min)} | Máx: ${fmtNum(stats.max)} | n=${stats.n}`;
     m.bindTooltip(tip, { direction:"top", opacity:0.9 });
 
     const html = `
       <div style="min-width:260px">
-        <div style="font-weight:800; margin-bottom:6px">${site}</div>
+        <div style="font-weight:800; margin-bottom:6px">${escapeHTML(site)}</div>
         <div style="font-size:12px; color:#a8b0bf; margin-bottom:8px">
           Coord: ${obj.lat.toFixed(5)}, ${obj.lon.toFixed(5)}
         </div>
