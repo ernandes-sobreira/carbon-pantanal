@@ -214,12 +214,14 @@
     .wrap>.card:first-child{grid-column:2;grid-row:1}
     .wrap>.card:nth-child(2){grid-column:1;grid-row:1}
     .wrap>.card:nth-child(2) .bd{display:flex;flex-direction:column;gap:14px}
-    .wrap>.card:nth-child(2) .stat{order:1}
-    .wrap>.card:nth-child(2) .analysis-row{order:2}
-    .wrap>.card:nth-child(2) .site-stats{order:3}
-    .wrap>.card:nth-child(2) #map{order:4;height:440px;border:1px solid var(--stroke);border-radius:10px}
-     .wrap>.card:nth-child(2) .heat-legend{order:5}
-    .wrap>.card:nth-child(2) .temporal-analysis{order:6;margin-top:0!important}
+    .wrap>.card:nth-child(2) .dash-filters{order:1}
+    .wrap>.card:nth-child(2) .stat{order:2}
+    .wrap>.card:nth-child(2) .analysis-row{order:3}
+    .wrap>.card:nth-child(2) .researcher-analysis{order:4}
+    .wrap>.card:nth-child(2) .site-stats{order:5}
+    .wrap>.card:nth-child(2) #map{order:6;height:440px;border:1px solid var(--stroke);border-radius:10px}
+     .wrap>.card:nth-child(2) .heat-legend{order:7}
+    .wrap>.card:nth-child(2) .temporal-analysis{order:8;margin-top:0!important}
     .heat-legend{display:none;align-items:center;gap:9px;color:var(--muted);font-size:11px}
     .heat-legend i{display:block;width:132px;height:9px;border-radius:99px;background:linear-gradient(90deg,#3182bd,#38a89b,#8cc65d,#f2ce4a,#dc4b36)}
      .heat-legend.show{display:flex}
@@ -230,6 +232,20 @@
     .site-stats th:first-child,.site-stats td:first-child{text-align:left}
     .temporal-analysis{padding-top:12px;border-top:1px solid var(--stroke)}
     .temporal-analysis .ttl{font-size:14px;color:var(--soft)}
+    .dash-filters{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;padding:12px;background:#f6f9f5;border:1px solid #e1e9df;border-radius:10px}
+    .dash-filters>div{min-width:0}.dash-filters label{display:block;margin:0 0 5px;font-weight:650}.dash-filters select{min-height:38px}
+    .stat .kpi{border-top:3px solid #5c9e70;background:linear-gradient(180deg,#f4faf3,#fff)}
+    .stat .kpi:nth-child(2){border-top-color:#3e8d9a;background:linear-gradient(180deg,#f1f9fa,#fff)}
+    .stat .kpi:nth-child(3){border-top-color:#d18155;background:linear-gradient(180deg,#fff7f1,#fff)}
+    .stat .kpi:nth-child(4){border-top-color:#c44f49;background:linear-gradient(180deg,#fff4f2,#fff)}
+    .stat .kpi:nth-child(5){border-top-color:#6f67b5;background:linear-gradient(180deg,#f7f5ff,#fff)}
+    .stat .kpi:nth-child(6){border-top-color:#d5a72b;background:linear-gradient(180deg,#fffaf0,#fff)}
+    .analysis-card{box-shadow:0 2px 10px rgba(34,60,38,.035)}
+    .researcher-analysis{margin-top:0}.researcher-analysis .analysis-canvas{height:220px}
+    .site-stats table{min-width:650px}.site-stats th{color:#3f624b;font-weight:750}
+    .site-stats td:first-child{font-weight:650;color:#273d2e}
+    @media(max-width:760px){.dash-filters{grid-template-columns:1fr 1fr}.researcher-analysis .analysis-canvas{height:200px}}
+    @media(max-width:420px){.dash-filters{grid-template-columns:1fr}}
     @media(max-width:1000px){.wrap{grid-template-columns:minmax(0,1fr) 300px}}
     @media(max-width:760px){
       header{padding:16px 14px 8px;display:block}
@@ -305,13 +321,7 @@
         </div>
       </div>
 
-      <div style="margin-top:10px">
-        <label>Variável (coluna numérica para analisar)</label>
-        <select id="colValue" disabled></select>
-        <div class="hint" style="margin-top:6px">
-          Se seu arquivo tiver várias variáveis (ex.: CO2_flux, Temp, pH), você troca aqui e tudo atualiza.
-        </div>
-      </div>
+      <div class="hint" style="margin-top:10px">A variável estatística fica nos filtros do painel principal.</div>
 
       <div class="row" style="margin-top:10px">
         <button class="btn" id="btnApply" disabled>Aplicar e montar mapa</button>
@@ -357,7 +367,7 @@
       </div>
     </div>
     <div class="bd">
-      <section class="analysis-card site-stats"><div class="analysis-title">Resumo estatístico por local</div><div class="analysis-note">n, média, mediana, mínimo e máximo da variável selecionada.</div><div class="table-scroll"><table><thead><tr><th>Local</th><th>n</th><th>Média</th><th>Mediana</th><th>Mín.</th><th>Máx.</th></tr></thead><tbody id="siteStatsBody"><tr><td colspan="6">Carregue dados para calcular o resumo por local.</td></tr></tbody></table></div></section>
+      <section class="analysis-card site-stats"><div class="analysis-title">Resumo estatístico por local</div><div class="analysis-note">n, média, mediana, mínimo e máximo da variável selecionada.</div><div class="table-scroll"><table><thead><tr><th>Local</th><th>n</th><th>Pesquisadores</th><th>Média</th><th>Mediana</th><th>Mín.</th><th>Máx.</th></tr></thead><tbody id="siteStatsBody"><tr><td colspan="7">Sincronizando registros aprovados...</td></tr></tbody></table></div></section>
       <div class="heat-legend" id="heatLegend" aria-hidden="true">
         <span id="heatLow">Menos registros</span><i aria-hidden="true"></i><span id="heatHigh">Mais registros</span>
         <span class="hint" id="heatLegendNote">Densidade de coletas</span>
@@ -366,6 +376,12 @@
 
       <div class="divider"></div>
 
+      <div class="dash-filters" aria-label="Filtros do painel">
+        <div><label for="recordTypeFilter">Compartimento</label><select id="recordTypeFilter"><option value="">Todos</option><option value="Solo">Solo</option><option value="Água">Água</option></select></div>
+        <div><label for="researcherFilter">Pesquisador</label><select id="researcherFilter"><option value="">Todos</option></select></div>
+        <div><label for="projectFilter">Projeto</label><select id="projectFilter"><option value="">Todos</option></select></div>
+        <div><label for="colValue">Variável analisada</label><select id="colValue" disabled></select></div>
+      </div>
       <div class="stat">
         <div class="kpi">
           <div class="k">Locais selecionados</div>
@@ -399,6 +415,11 @@
           <div class="analysis-canvas"><div class="chart-empty" id="emptyDistribution">Carregue dados para ver a distribuição dos valores.</div><canvas id="chartDistribution"></canvas></div>
         </section>
       </div>
+      <section class="analysis-card researcher-analysis">
+        <div class="analysis-title">Registros por pesquisador</div>
+        <div class="analysis-note">Medições aprovadas atribuídas a cada pessoa nos filtros atuais.</div>
+        <div class="analysis-canvas"><div class="chart-empty" id="emptyResearchers">Os nomes aparecem após entrar no portal de dados.</div><canvas id="chartResearchers"></canvas></div>
+      </section>
       <div class="temporal-analysis">
         <div class="row" style="justify-content:space-between">
           <div class="ttl">Comparação temporal (locais selecionados)</div>
@@ -719,6 +740,7 @@ function renderMap(){
     const tip = `${escapeHTML(site)}\nÚltimo: ${last.dateISO} = ${fmtNum(last.value)}\nMin: ${fmtNum(stats.min)} | Máx: ${fmtNum(stats.max)} | n=${stats.n}`;
     m.bindTooltip(tip, { direction:"top", opacity:0.9 });
 
+    const authors=Array.from(new Set(filtered.map(r=>r.rowRef?.["Pesquisador"]).filter(n=>n&&n!=="Autor não identificado")));
     const html = `
       <div style="min-width:260px">
         <div style="font-weight:800; margin-bottom:6px">${escapeHTML(site)}</div>
@@ -729,11 +751,12 @@ function renderMap(){
           <b>Último:</b> ${last.dateISO} — <b>${fmtNum(last.value)}</b>
         </div>
         <div style="font-size:12px; margin-bottom:6px">
-          <b>Min:</b> ${fmtNum(stats.min)} (${stats.minDate})<br/>
-          <b>Max:</b> ${fmtNum(stats.max)} (${stats.maxDate})<br/>
+          <b>Mínimo:</b> ${fmtNum(stats.min)}<br/>
+          <b>Máximo:</b> ${fmtNum(stats.max)}<br/>
           <b>Média:</b> ${fmtNum(stats.mean)} • <b>n</b> = ${stats.n}
         </div>
-        <div style="font-size:11px; color:#a8b0bf">Dica: selecione/desmarque locais na lista à esquerda para comparar.</div>
+        <div style="font-size:12px;margin-bottom:6px"><b>Pesquisadores:</b> ${authors.length?authors.map(escapeHTML).join(", "):"entre no portal para ver nomes"}</div>
+        <div style="font-size:11px;color:#68756b">Ponto geográfico correspondente às coordenadas cadastradas.</div>
       </div>
     `;
     m.bindPopup(html);
@@ -756,6 +779,10 @@ function applyDateFilter(rows){
   const e = $("dateEnd").value ? new Date($("dateEnd").value).getTime() : null;
 
   return rows.filter(r=>{
+    const meta=r.rowRef||{}, kind=$("recordTypeFilter")?.value||"", person=$("researcherFilter")?.value||"", project=$("projectFilter")?.value||"";
+    if(kind && meta["Tipo"]!==kind) return false;
+    if(person && meta["Pesquisador"]!==person) return false;
+    if(project && meta["Projeto"]!==project) return false;
     if((s || e) && !Number.isFinite(r.ts)) return false;
     if(s && r.ts < s) return false;
     if(e && r.ts > (e + 24*3600*1000 - 1)) return false; // inclui o dia final
@@ -883,7 +910,9 @@ function autoDetect(){
     }
     return seen>0 && (ok/seen) > 0.7;
   });
-  if(candidates.length) value = candidates[0];
+  const preferred=candidates.find(c=>/(flux|fluxo|co2|carbon|ch4|temperatura|temperature|ph|oxygen|od|conductiv|materia|organic)/i.test(c) && !/(latitude|longitude|replicate|replica|year|ano|id)/i.test(c));
+  if(preferred) value=preferred;
+  else if(candidates.length) value=candidates.find(c=>!/(latitude|longitude|replicate|replica|year|ano|id)/i.test(c))||candidates[0];
 
   if(site) $("colSite").value = site;
   if(lat)  $("colLat").value  = lat;
@@ -1066,35 +1095,51 @@ initChart();
 renderKPIs();
 </script>
 <script>
-let analysisMeanChart, analysisDistributionChart, carbonHeatLayer=null, carbonHeatEnabled=false, carbonHeatMode="records";
+let analysisMeanChart, analysisDistributionChart, researcherChart, carbonHeatLayer=null, carbonHeatEnabled=false, carbonHeatMode="records";
 function initCarbonAnalysisCharts(){
   const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#68756b"},grid:{color:"rgba(32,49,38,.09)"}},y:{ticks:{color:"#68756b"},grid:{color:"rgba(32,49,38,.09)"}}}};
   analysisMeanChart=new Chart($("chartSiteMean"),{type:"bar",data:{labels:[],datasets:[{label:"Média",data:[],backgroundColor:"rgba(73,139,83,.78)",borderColor:"#498b53",borderWidth:1}]},options:{...base,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>"Média: "+fmtNum(it.raw)}}}}});
-  analysisDistributionChart=new Chart($("chartDistribution"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(99,150,112,.68)",borderColor:"#639670",borderWidth:1}]},options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
-  carbonHeatLayer=L.heatLayer([],{radius:48,blur:30,maxZoom:12,minOpacity:.58,gradient:{.1:"#3182bd",.35:"#38a89b",.58:"#8cc65d",.78:"#f2ce4a",1:"#dc4b36"}});
+  analysisDistributionChart=new Chart($("chartDistribution"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(68,136,178,.72)",borderColor:"#4488b2",borderWidth:1,borderRadius:4}]},options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
+  researcherChart=new Chart($("chartResearchers"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(195,112,66,.78)",borderColor:"#b9633c",borderWidth:1,borderRadius:4}]},options:{...base,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
+  if(typeof L.heatLayer==="function") carbonHeatLayer=L.heatLayer([],{radius:48,blur:30,maxZoom:12,minOpacity:.58,gradient:{.1:"#3182bd",.35:"#38a89b",.58:"#8cc65d",.78:"#f2ce4a",1:"#dc4b36"}});
+  else {carbonHeatLayer=L.layerGroup();carbonHeatLayer.setLatLngs=function(points){this.clearLayers();for(const p of points){const [lat,lon,w]=p,color=w>.78?"#c9463d":w>.55?"#e0a52f":w>.32?"#64a765":"#358eaa";L.circleMarker([lat,lon],{radius:13+19*w,stroke:false,fillColor:color,fillOpacity:.18+.32*w}).addTo(this);L.circleMarker([lat,lon],{radius:4+8*w,stroke:false,fillColor:color,fillOpacity:.85}).addTo(this);}};}
 }
 function getCarbonSelectedRows(){
   const out=[];
   for(const [site,obj] of sites.entries()){if(!selectedSites.has(site))continue;for(const r of applyDateFilter(obj.rows))out.push({...r,site});}
   return out;
 }
-function updateCarbonChartStates(){const means=analysisMeanChart?.data?.datasets?.[0]?.data||[],bins=analysisDistributionChart?.data?.datasets?.[0]?.data||[],series=chart?.data?.datasets||[];$("emptySiteMean").hidden=means.length>0;$("emptyDistribution").hidden=bins.length>0;$("emptyTemporal").hidden=series.some(d=>(d.data||[]).some(v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))));}
+function updateCarbonChartStates(){const means=analysisMeanChart?.data?.datasets?.[0]?.data||[],bins=analysisDistributionChart?.data?.datasets?.[0]?.data||[],people=researcherChart?.data?.datasets?.[0]?.data||[],series=chart?.data?.datasets||[];$("emptySiteMean").hidden=means.length>0;$("emptyDistribution").hidden=bins.length>0;$("emptyResearchers").hidden=people.length>0;$("emptyTemporal").hidden=series.some(d=>(d.data||[]).some(v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))));}
 function summarizeValues(values){const a=values.filter(Number.isFinite).slice().sort((x,y)=>x-y);if(!a.length)return null;return{n:a.length,mean:a.reduce((x,y)=>x+y,0)/a.length,median:a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2,min:a[0],max:a[a.length-1]};}
-function renderCarbonSiteTable(){const body=$("siteStatsBody"),groups=new Map();for(const r of getCarbonSelectedRows()){if(!groups.has(r.site))groups.set(r.site,[]);groups.get(r.site).push(r.value);}const rows=Array.from(groups.entries()).map(([site,vals])=>({site,...summarizeValues(vals)})).filter(x=>x.n).sort((a,b)=>a.site.localeCompare(b.site,"pt-BR"));body.replaceChildren();if(!rows.length){const td=body.insertRow().insertCell();td.colSpan=6;td.textContent="Sem dados numéricos para os filtros atuais.";return;}for(const r of rows){const tr=body.insertRow();[r.site,r.n.toLocaleString("pt-BR"),fmtNum(r.mean),fmtNum(r.median),fmtNum(r.min),fmtNum(r.max)].forEach(v=>{tr.insertCell().textContent=v;});}}
+function renderCarbonSiteTable(){
+  const body=$("siteStatsBody"),groups=new Map();
+  for(const r of getCarbonSelectedRows()){
+    if(!groups.has(r.site))groups.set(r.site,{values:[],people:new Set()});
+    const g=groups.get(r.site);g.values.push(r.value);
+    const who=r.rowRef?.["Pesquisador"];if(who&&who!=="Autor não identificado")g.people.add(who);
+  }
+  const rows=Array.from(groups.entries()).map(([site,g])=>({site,people:g.people.size,...summarizeValues(g.values)})).filter(x=>x.n).sort((a,b)=>a.site.localeCompare(b.site,"pt-BR"));
+  body.replaceChildren();
+  if(!rows.length){const td=body.insertRow().insertCell();td.colSpan=7;td.textContent="Sem registros numéricos para esta combinação de filtros.";return;}
+  for(const r of rows){const tr=body.insertRow();[r.site,r.n.toLocaleString("pt-BR"),r.people?String(r.people):"—",fmtNum(r.mean),fmtNum(r.median),fmtNum(r.min),fmtNum(r.max)].forEach(v=>tr.insertCell().textContent=v);}
+}
 function renderCarbonAnalysisCharts(){
   if(!analysisMeanChart||!analysisDistributionChart)return;
   const rows=getCarbonSelectedRows();
   const groups=new Map();
   rows.forEach(r=>{if(!groups.has(r.site))groups.set(r.site,[]);groups.get(r.site).push(r.value)});
   const means=Array.from(groups.entries()).map(([site,v])=>({site,mean:v.reduce((a,b)=>a+b,0)/v.length})).sort((a,b)=>b.mean-a.mean).slice(0,15);
-  analysisMeanChart.data.labels=means.map(x=>x.site);analysisMeanChart.data.datasets[0].data=means.map(x=>x.mean);analysisMeanChart.update();
+  analysisMeanChart.data.labels=means.map(x=>x.site);analysisMeanChart.data.datasets[0].data=means.map(x=>x.mean);analysisMeanChart.data.datasets[0].backgroundColor=means.map(x=>x.mean<0?"rgba(209,107,78,.82)":"rgba(55,143,103,.82)");analysisMeanChart.update();
   const vals=rows.map(r=>r.value).filter(Number.isFinite).sort((a,b)=>a-b);
-  if(!vals.length){analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();return;}
+  if(!vals.length){analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();researcherChart.data.labels=[];researcherChart.data.datasets[0].data=[];researcherChart.update();return;}
   const min=vals[0],max=vals[vals.length-1],count=min===max?1:Math.min(18,Math.max(5,Math.ceil(Math.sqrt(vals.length)))),width=min===max?1:(max-min)/count;
   const bins=Array.from({length:count},(_,i)=>({lo:min+i*width,hi:i===count-1?max:min+(i+1)*width,n:0}));
   vals.forEach(v=>bins[min===max?0:Math.min(count-1,Math.floor((v-min)/width))].n++);
   analysisDistributionChart.data.labels=bins.map(b=>min===max?fmtNum(min):fmtNum(b.lo)+"–"+fmtNum(b.hi));
   analysisDistributionChart.data.datasets[0].data=bins.map(b=>b.n);analysisDistributionChart.update();
+  const byPerson=new Map();rows.forEach(r=>{const who=r.rowRef?.["Pesquisador"];if(who&&who!=="Autor não identificado")byPerson.set(who,(byPerson.get(who)||0)+1);});
+  const top=Array.from(byPerson.entries()).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  researcherChart.data.labels=top.map(x=>x[0]);researcherChart.data.datasets[0].data=top.map(x=>x[1]);researcherChart.update();
 }
 function renderCarbonHeatmap(){
   if(!carbonHeatLayer||!carbonHeatEnabled)return;
@@ -1107,6 +1152,12 @@ function renderCarbonHeatmap(){
   if(!map.hasLayer(carbonHeatLayer))carbonHeatLayer.addTo(map);
 }
 function updateHeatLegend(){const v=carbonHeatMode==="value";$("heatLow").textContent=v?"Menor média":"Menos registros";$("heatHigh").textContent=v?"Maior média":"Mais registros";$("heatLegendNote").textContent=v?"Média da variável selecionada":"Densidade de coletas";}
+function populateDashboardFilters(){
+  const sets={researcherFilter:new Set(),projectFilter:new Set()};
+  rawTable.forEach(r=>{if(r["Pesquisador"]&&r["Pesquisador"]!=="Autor não identificado")sets.researcherFilter.add(r["Pesquisador"]);if(r["Projeto"]&&r["Projeto"]!=="Não informado")sets.projectFilter.add(r["Projeto"]);});
+  Object.entries(sets).forEach(([id,set])=>{const el=$(id);el.replaceChildren(new Option("Todos",""));Array.from(set).sort((a,b)=>a.localeCompare(b,"pt-BR")).forEach(v=>el.add(new Option(v,v)));el.disabled=set.size===0;});
+  $("emptyResearchers").textContent=sets.researcherFilter.size?"Sem registros de pessoas para os filtros atuais.":"Entre pelo portal de dados para visualizar e filtrar pelos pesquisadores.";
+}
 initCarbonAnalysisCharts();
 const baseRefreshAll=refreshAll;
 refreshAll=function(){baseRefreshAll();renderCarbonAnalysisCharts();renderCarbonSiteTable();renderCarbonHeatmap();updateCarbonChartStates();};
@@ -1116,6 +1167,8 @@ renderSitesList=function(){baseRenderSitesList();$("btnHeat").disabled=false;};
 $("btnHeat").setAttribute("aria-pressed","false");
 $("heatMode").addEventListener("change",()=>{carbonHeatMode=$("heatMode").value;updateHeatLegend();renderCarbonHeatmap();});
 $("btnHeat").addEventListener("click",()=>{carbonHeatEnabled=!carbonHeatEnabled;$("btnHeat").textContent=carbonHeatEnabled?"Ocultar heatmap":"Mostrar heatmap";$("btnHeat").setAttribute("aria-pressed",String(carbonHeatEnabled));$("heatLegend").classList.toggle("show",carbonHeatEnabled);if(carbonHeatEnabled)renderCarbonHeatmap();else if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);});
+$("recordTypeFilter").addEventListener("change",()=>{const t=$("recordTypeFilter").value,v=$("colValue").value;if(t==="Água"&&v.includes("solo"))$("colValue").value="Fluxo CO2 água (mg/m2/dia)";else if(t==="Solo"&&v.includes("água"))$("colValue").value="Fluxo CO2 solo (mg/m2/dia)";refreshAll();updateCarbonChartStates();});
+["researcherFilter","projectFilter","colValue"].forEach(id=>$(id).addEventListener("change",()=>{refreshAll();updateCarbonChartStates();}));
 $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);$("btnHeat").textContent="Mostrar heatmap";$("btnHeat").setAttribute("aria-pressed","false");$("heatLegend").classList.remove("show");$("heatMode").value="records";carbonHeatMode="records";updateHeatLegend();$("btnHeat").disabled=true;if(analysisMeanChart){analysisMeanChart.data.labels=[];analysisMeanChart.data.datasets[0].data=[];analysisMeanChart.update();analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();}updateCarbonChartStates();});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
@@ -1127,44 +1180,70 @@ $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHea
   const $id=id=>document.getElementById(id);
   async function loadCarbonProject(){
     const button=$id("btnSyncDb"), status=$id("pillStatus");
-    button.disabled=true; status.textContent="Sincronizando banco…";
+    button.disabled=true;status.textContent="Sincronizando banco...";
     try{
-      const records=[];
-      for(let from=0; ; from+=1000){
-        const {data,error}=await db.from("carbon_public_map").select("*").order("effective_date",{ascending:true}).range(from,from+999);
-        if(error) throw error;
-        records.push(...(data||[]));
-        if(!data || data.length<1000) break;
-        if(from>=49000) throw new Error("O conjunto excedeu o limite desta página.");
+      let records=[],withNames=false;
+      const {data:{session}}=await db.auth.getSession();
+      if(session){
+        try{
+          for(let from=0;;from+=1000){
+            const {data,error}=await db.from("carbon_records")
+              .select("record_type,sample_date,collection_year,project_name,student_name,point_code,replicate,treatment,chamber,flux_mg_co2_m2_day,soil_state,soil_ph,soil_temperature_c,soil_organic_matter,soil_conductivity,seasonal_period,water_compartment,water_temperature_c,dissolved_oxygen_mg_l,water_ph,water_conductivity_us_cm,dissolved_oxygen_percent,carbon_sites(site_name,locality,latitude,longitude)")
+              .eq("review_status","approved").order("sample_date",{ascending:true}).range(from,from+999);
+            if(error)throw error;records.push(...(data||[]));if(!data||data.length<1000)break;
+          }
+          withNames=records.length>0;
+        }catch(e){records=[];console.warn("Leitura autenticada indisponível; usando a visão pública.",e);}
       }
-      const rows=records.map(r=>({
-        "Local":r.site_label, "Latitude":r.latitude, "Longitude":r.longitude, "Data":r.effective_date,
-        "Fluxo CO2 solo (mg/m2/dia)":r.record_type==="soil"?r.flux_mg_co2_m2_day:null,
-        "Fluxo CO2 água (mg/m2/dia)":r.record_type==="water"?r.flux_mg_co2_m2_day:null,
-        "Temperatura do solo (°C)":r.soil_temperature_c, "pH do solo":r.soil_ph,
-        "Matéria orgânica do solo":r.soil_organic_matter, "Condutividade do solo":r.soil_conductivity,
-        "Temperatura da água (°C)":r.water_temperature_c, "OD da água (mg/L)":r.dissolved_oxygen_mg_l,
-        "pH da água":r.water_ph, "Condutividade da água (µS/cm)":r.water_conductivity_us_cm,
-        "OD da água (%)":r.dissolved_oxygen_percent
-      }));
-      if(!rows.length){status.textContent="Acesse o portal e entre para ver a base";toast("Entre com sua conta em “Portal de dados dos alunos” e volte ao mapa para carregar os registros aprovados.");return;}
-      rawTable=rows; columns=Object.keys(rows[0]);
-      $id("sheetSelect").innerHTML=""; $id("sheetSelect").disabled=true;
+      if(!records.length){
+        for(let from=0;;from+=1000){
+          const {data,error}=await db.from("carbon_public_map").select("*").order("effective_date",{ascending:true}).range(from,from+999);
+          if(error)throw error;records.push(...(data||[]));if(!data||data.length<1000)break;
+          if(from>=49000)throw new Error("O conjunto excedeu o limite desta página.");
+        }
+      }
+      const rows=records.map(r=>{
+        const type=r.record_type==="soil"?"Solo":"Água", site=r.carbon_sites||{};
+        return {
+          "Local":r.site_label||r.site_name||site.site_name||"Local sem nome",
+          "Município":r.locality||site.locality||"",
+          "Latitude":r.latitude??site.latitude,"Longitude":r.longitude??site.longitude,
+          "Data":r.effective_date||r.sample_date||(r.collection_year?String(r.collection_year)+"-01-01":""),
+          "Tipo":type,"Pesquisador":r.student_name||"Autor não identificado",
+          "Projeto":r.project_name||"Não informado","Ponto":r.point_code||"",
+          "Réplica":r.replicate,"Tratamento":r.treatment||"",
+          "Câmara":r.chamber||"","Compartimento":r.water_compartment||"",
+          "Período sazonal":r.seasonal_period||"",
+          "Fluxo CO2 (mg/m2/dia)":r.flux_mg_co2_m2_day,
+          "Fluxo CO2 solo (mg/m2/dia)":type==="Solo"?r.flux_mg_co2_m2_day:null,
+          "Fluxo CO2 água (mg/m2/dia)":type==="Água"?r.flux_mg_co2_m2_day:null,
+          "Temperatura do solo (°C)":r.soil_temperature_c,"pH do solo":r.soil_ph,
+          "Matéria orgânica do solo":r.soil_organic_matter,"Condutividade do solo":r.soil_conductivity,
+          "Temperatura da água (°C)":r.water_temperature_c,"OD da água (mg/L)":r.dissolved_oxygen_mg_l,
+          "pH da água":r.water_ph,"Condutividade da água (µS/cm)":r.water_conductivity_us_cm,
+          "OD da água (%)":r.dissolved_oxygen_percent
+        };
+      });
+      if(!rows.length)throw new Error("A base não retornou registros aprovados.");
+      rawTable=rows;columns=Object.keys(rows[0]);
+      $id("sheetSelect").replaceChildren();$id("sheetSelect").disabled=true;
       afterLoaded();
-      $id("colSite").value="Local"; $id("colLat").value="Latitude";
-      $id("colLon").value="Longitude"; $id("colDate").value="Data";
+      $id("colSite").value="Local";$id("colLat").value="Latitude";
+      $id("colLon").value="Longitude";$id("colDate").value="Data";
       $id("colValue").value="Fluxo CO2 solo (mg/m2/dia)";
+      populateDashboardFilters();
+      $id("recordTypeFilter").value="Solo";
       buildPrepared();
-      if(!prepared.length) throw new Error("Base lida, mas sem linhas com local e valor numérico para essa variável.");
+      if(!prepared.length)throw new Error("Base lida, mas sem registros numéricos para a variável selecionada.");
       renderSitesList();
-      $id("dateStart").value=""; $id("dateEnd").value="";
-      refreshAll();
-      const mappedRows=prepared.length;
-      const noCoords=rows.filter(r=>r.Latitude==null || r.Longitude==null).length;
-      status.textContent=`Banco sincronizado • ${records.length.toLocaleString("pt-BR")} aprovados`;
-      toast(`Banco sincronizado: ${mappedRows.toLocaleString("pt-BR")} medições de solo válidas. ${noCoords.toLocaleString("pt-BR")} registros sem coordenadas permanecem nas análises, fora do mapa.`);
+      $id("dateStart").value="";$id("dateEnd").value="";
+      refreshAll();updateCarbonChartStates();
+      carbonHeatEnabled=true;$id("btnHeat").textContent="Ocultar heatmap";$id("btnHeat").setAttribute("aria-pressed","true");$id("heatLegend").classList.add("show");renderCarbonHeatmap();
+      const missingCoords=rows.filter(r=>!Number.isFinite(Number(r.Latitude))||!Number.isFinite(Number(r.Longitude))).length;
+      status.textContent=`Base pronta • ${records.length.toLocaleString("pt-BR")} registros aprovados`;
+      toast(`Painel atualizado: ${records.length.toLocaleString("pt-BR")} registros, ${sites.size} locais.${withNames?" Pesquisadores identificados.":" Entre pelo portal para carregar os nomes."}${missingCoords?` ${missingCoords} sem coordenadas (mantidos nas estatísticas).`:""}`);
     }catch(error){
-      console.error(error); status.textContent="Falha ao sincronizar";
+      console.error(error);status.textContent="Falha ao sincronizar";
       toast("Falha ao sincronizar: "+(error?.message||"erro de leitura ou montagem dos dados"),true);
     }finally{button.disabled=false;}
   }
