@@ -177,6 +177,60 @@
       .wrap{grid-template-columns: 1fr}
       #map{height: 420px}
     }
+    /* Tema claro, limpo e orientado à leitura */
+    :root{
+      --bg:#f5f7f4; --panel:#ffffff; --panel2:#ffffff; --stroke:#e2e8e0;
+      --muted:#68756b; --txt:#203126; --soft:#34483a; --chip:#f0f5ef;
+      --btn:#f1f5f0; --btn2:#e6eee4; --accent:#39784d; --good:#2f855a;
+      --bad:#c2413b; --shadow:0 2px 10px rgba(27,55,34,.06); --radius:12px;
+    }
+    body{background:var(--bg);color:var(--txt)}
+    header{max-width:1500px;padding:20px 24px 12px;align-items:center}
+    h1{font-size:21px;letter-spacing:0}.sub{font-size:13px}
+    .wrap{max-width:1500px;padding:12px 24px 28px;gap:18px;grid-template-columns:minmax(0,1fr) 330px;align-items:start}
+    .card{background:#fff;border-color:var(--stroke);box-shadow:var(--shadow);border-radius:12px}
+    .card .hd{padding:14px 16px;border-bottom-color:var(--stroke)}
+    .card .hd .ttl,.analysis-title{color:var(--soft);font-size:14px;letter-spacing:0}
+    .card .bd{padding:16px}
+    label,.hint,.analysis-note,.site-meta,.kpi .k,.kpi .s{color:var(--muted)}
+    input,select{background:#fff;color:var(--txt);border-color:#d7e0d5;border-radius:8px}
+    input:focus,select:focus{border-color:#60906a;box-shadow:0 0 0 3px rgba(67,130,78,.12)}
+    .btn{background:var(--btn);color:#294332;border-color:#dce6d9;border-radius:8px;box-shadow:none}
+    .btn:hover{background:var(--btn2)}
+    .btn[aria-pressed="true"]{background:#39784d;color:#fff;border-color:#39784d}
+    .pill{background:#f2f6f1;color:#526455;border-color:#e0e8de}
+    .divider{background:var(--stroke)}
+    .analysis-card,.kpi{background:#fff;border-color:var(--stroke);border-radius:10px}
+    .analysis-row{gap:14px;margin-top:4px}.analysis-canvas{height:240px}
+    canvas{background:#fff;border-color:#e6ebe4;border-radius:8px}
+    #chart{width:100%;height:260px!important}
+    .sites{max-height:320px}.site-item{border-radius:8px}
+    .site-item:hover{background:#f6f9f5;border-color:#e5ece3}
+    .toast{background:#fff;color:var(--soft);border-color:var(--stroke);box-shadow:0 4px 18px rgba(27,55,34,.12)}
+    .wrap>.card:first-child{grid-column:2;grid-row:1}
+    .wrap>.card:nth-child(2){grid-column:1;grid-row:1}
+    .wrap>.card:nth-child(2) .bd{display:flex;flex-direction:column;gap:14px}
+    .wrap>.card:nth-child(2) .stat{order:1}
+    .wrap>.card:nth-child(2) .analysis-row{order:2}
+    .wrap>.card:nth-child(2) #map{order:3;height:440px;border:1px solid var(--stroke);border-radius:10px}
+    .wrap>.card:nth-child(2) .heat-legend{order:4}
+    .wrap>.card:nth-child(2) .temporal-analysis{order:5;margin-top:0!important}
+    .heat-legend{display:none;align-items:center;gap:9px;color:var(--muted);font-size:11px}
+    .heat-legend i{display:block;width:132px;height:9px;border-radius:99px;background:linear-gradient(90deg,#3182bd,#38a89b,#8cc65d,#f2ce4a,#dc4b36)}
+    .heat-legend.show{display:flex}
+    .temporal-analysis{padding-top:12px;border-top:1px solid var(--stroke)}
+    .temporal-analysis .ttl{font-size:14px;color:var(--soft)}
+    @media(max-width:1000px){.wrap{grid-template-columns:minmax(0,1fr) 300px}}
+    @media(max-width:760px){
+      header{padding:16px 14px 8px;display:block}
+      header>.row{margin-top:12px;justify-content:flex-start}
+      .wrap{grid-template-columns:1fr;padding:8px 12px 22px}
+      .wrap>.card:nth-child(2){grid-column:1;grid-row:1}
+      .wrap>.card:first-child{grid-column:1;grid-row:2}
+      .wrap>.card:nth-child(2) #map{height:360px}
+      .stat{grid-template-columns:1fr 1fr}
+      .analysis-row{grid-template-columns:1fr}.analysis-canvas{height:220px}
+    }
   </style>
 </head>
 
@@ -292,6 +346,10 @@
       </div>
     </div>
     <div class="bd">
+      <div class="heat-legend" id="heatLegend" aria-hidden="true">
+        <span>Menos registros</span><i aria-hidden="true"></i><span>Mais registros</span>
+        <span class="hint">Densidade de coletas</span>
+      </div>
       <div id="map"></div>
 
       <div class="divider"></div>
@@ -331,7 +389,7 @@
           <div class="analysis-canvas"><canvas id="chartDistribution"></canvas></div>
         </section>
       </div>
-      <div style="margin-top:12px">
+      <div class="temporal-analysis">
         <div class="row" style="justify-content:space-between">
           <div class="ttl">Comparação temporal (locais selecionados)</div>
           <div class="hint">Linha por local (média diária). Use poucos locais pra ficar legível.</div>
@@ -472,7 +530,7 @@ function initChart(){
       maintainAspectRatio: false,
       parsing: false,
       plugins: {
-        legend: { labels: { color: "#cfd6e3" } },
+        legend: { labels: { color: "#34483a" } },
         tooltip: {
           callbacks:{
             label: (it)=> `${it.dataset.label}: ${fmtNum(it.raw?.y)}`
@@ -480,8 +538,8 @@ function initChart(){
         }
       },
       scales: {
-        x: { ticks: { color:"#a8b0bf" }, grid: { color:"rgba(255,255,255,.06)" } },
-        y: { ticks: { color:"#a8b0bf" }, grid: { color:"rgba(255,255,255,.06)" } }
+        x: { ticks: { color:"#68756b" }, grid: { color:"rgba(32,49,38,.09)" } },
+        y: { ticks: { color:"#68756b" }, grid: { color:"rgba(32,49,38,.09)" } }
       },
       elements: { point: { radius: 0 } }
     }
@@ -996,10 +1054,10 @@ renderKPIs();
 <script>
 let analysisMeanChart, analysisDistributionChart, carbonHeatLayer=null, carbonHeatEnabled=false;
 function initCarbonAnalysisCharts(){
-  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#a8b0bf"},grid:{color:"rgba(255,255,255,.06)"}},y:{ticks:{color:"#a8b0bf"},grid:{color:"rgba(255,255,255,.06)"}}}};
-  analysisMeanChart=new Chart($("chartSiteMean"),{type:"bar",data:{labels:[],datasets:[{label:"Média",data:[],backgroundColor:"rgba(159,211,159,.76)",borderColor:"#9fd39f",borderWidth:1}]},options:{...base,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>"Média: "+fmtNum(it.raw)}}}}});
-  analysisDistributionChart=new Chart($("chartDistribution"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(191,198,214,.76)",borderColor:"#bfc6d6",borderWidth:1}]},options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
-  carbonHeatLayer=L.heatLayer([],{radius:34,blur:24,maxZoom:13,minOpacity:.35,gradient:{.15:"#3b82a0",.45:"#71b784",.72:"#e5c45f",1:"#d95f45"}});
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#68756b"},grid:{color:"rgba(32,49,38,.09)"}},y:{ticks:{color:"#68756b"},grid:{color:"rgba(32,49,38,.09)"}}}};
+  analysisMeanChart=new Chart($("chartSiteMean"),{type:"bar",data:{labels:[],datasets:[{label:"Média",data:[],backgroundColor:"rgba(73,139,83,.78)",borderColor:"#498b53",borderWidth:1}]},options:{...base,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>"Média: "+fmtNum(it.raw)}}}}});
+  analysisDistributionChart=new Chart($("chartDistribution"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(99,150,112,.68)",borderColor:"#639670",borderWidth:1}]},options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
+  carbonHeatLayer=L.heatLayer([],{radius:48,blur:30,maxZoom:12,minOpacity:.58,gradient:{.1:"#3182bd",.35:"#38a89b",.58:"#8cc65d",.78:"#f2ce4a",1:"#dc4b36"}});
 }
 function getCarbonSelectedRows(){
   const out=[];
@@ -1033,8 +1091,9 @@ const baseRefreshAll=refreshAll;
 refreshAll=function(){baseRefreshAll();renderCarbonAnalysisCharts();renderCarbonHeatmap();};
 const baseRenderSitesList=renderSitesList;
 renderSitesList=function(){baseRenderSitesList();$("btnHeat").disabled=false;};
-$("btnHeat").addEventListener("click",()=>{carbonHeatEnabled=!carbonHeatEnabled;$("btnHeat").textContent=carbonHeatEnabled?"Ocultar heatmap":"Heatmap de localização";if(carbonHeatEnabled)renderCarbonHeatmap();else if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);});
-$("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);$("btnHeat").textContent="Heatmap de localização";$("btnHeat").disabled=true;if(analysisMeanChart){analysisMeanChart.data.labels=[];analysisMeanChart.data.datasets[0].data=[];analysisMeanChart.update();analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();}});
+$("btnHeat").setAttribute("aria-pressed","false");
+$("btnHeat").addEventListener("click",()=>{carbonHeatEnabled=!carbonHeatEnabled;$("btnHeat").textContent=carbonHeatEnabled?"Ocultar heatmap":"Heatmap de localização";$("btnHeat").setAttribute("aria-pressed",String(carbonHeatEnabled));$("heatLegend").classList.toggle("show",carbonHeatEnabled);if(carbonHeatEnabled)renderCarbonHeatmap();else if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);});
+$("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);$("btnHeat").textContent="Heatmap de localização";$("btnHeat").setAttribute("aria-pressed","false");$("heatLegend").classList.remove("show");$("btnHeat").disabled=true;if(analysisMeanChart){analysisMeanChart.data.labels=[];analysisMeanChart.data.datasets[0].data=[];analysisMeanChart.update();analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();}});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
 <script>
