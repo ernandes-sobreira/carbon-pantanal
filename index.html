@@ -1154,15 +1154,18 @@ $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHea
       $id("colSite").value="Local"; $id("colLat").value="Latitude";
       $id("colLon").value="Longitude"; $id("colDate").value="Data";
       $id("colValue").value="Fluxo CO2 solo (mg/m2/dia)";
-      $id("btnApply").click();
-      $id("dateStart").value=""; $id("dateEnd").value=""; refreshAll();
+      buildPrepared();
+      if(!prepared.length) throw new Error("Base lida, mas sem linhas com local e valor numérico para essa variável.");
+      renderSitesList();
+      $id("dateStart").value=""; $id("dateEnd").value="";
+      refreshAll();
       const mappedRows=prepared.length;
       const noCoords=rows.filter(r=>r.Latitude==null || r.Longitude==null).length;
       status.textContent=`Banco sincronizado • ${records.length.toLocaleString("pt-BR")} aprovados`;
       toast(`Banco sincronizado: ${mappedRows.toLocaleString("pt-BR")} medições de solo válidas. ${noCoords.toLocaleString("pt-BR")} registros sem coordenadas permanecem nas análises, fora do mapa.`);
     }catch(error){
       console.error(error); status.textContent="Falha ao sincronizar";
-      toast("Não foi possível ler o banco do projeto. Confira a conexão e tente sincronizar novamente.",true);
+      toast("Falha ao sincronizar: "+(error?.message||"erro de leitura ou montagem dos dados"),true);
     }finally{button.disabled=false;}
   }
   $id("btnSyncDb").addEventListener("click",loadCarbonProject);
