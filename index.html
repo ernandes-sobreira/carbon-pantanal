@@ -258,7 +258,23 @@
       .stat{grid-template-columns:1fr 1fr}
       .analysis-row{grid-template-columns:1fr}.analysis-canvas{height:220px}
     }
-  </style>
+  
+/* Paleta estatística: cards coloridos em interface clara */
+:root{--bg:#f7f8fc;--panel:#fff;--panel2:#fff;--stroke:#e5e7ef;--txt:#273044;--muted:#697386;--soft:#344056}
+body{background:#f7f8fc;color:#273044}
+.card,.analysis-card{background:#fff;border-color:#e5e7ef;box-shadow:0 8px 26px rgba(34,43,70,.06);border-radius:17px}
+.stat .kpi{border:0;border-radius:15px;padding:16px;background:#f2efff;color:#3e3475}
+.stat .kpi:nth-child(2){background:#e8f6f7;color:#176d73;border-top-color:#21a3a5}
+.stat .kpi:nth-child(3){background:#fff0e8;color:#a64c25;border-top-color:#ee8753}
+.stat .kpi:nth-child(4){background:#fdebf0;color:#9b3559;border-top-color:#d6577d}
+.stat .kpi:nth-child(5){background:#edf2ff;color:#3d58a2;border-top-color:#6286df}
+.stat .kpi:nth-child(6){background:#fff6df;color:#8a6411;border-top-color:#e2b438}
+.stat .kpi:nth-child(7){background:#e9f7ed;color:#287046;border-top-color:#5cb982}
+button,.btn{border-radius:10px}
+.heat-legend i{background:linear-gradient(90deg,#3659d9,#7655d8,#d34f94,#f1834d,#f0c446)}
+.site-item:hover{background:#f3f1ff;border-color:#e0dafc}
+canvas{background:transparent}
+</style>
 </head>
 
 <body>
@@ -1109,7 +1125,7 @@ function initCarbonAnalysisCharts(){
   analysisMeanChart=new Chart($("chartSiteMean"),{type:"bar",data:{labels:[],datasets:[{label:"Média",data:[],backgroundColor:"rgba(73,139,83,.78)",borderColor:"#498b53",borderWidth:1}]},options:{...base,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>"Média: "+fmtNum(it.raw)}}}}});
   analysisDistributionChart=new Chart($("chartDistribution"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(68,136,178,.72)",borderColor:"#4488b2",borderWidth:1,borderRadius:4}]},options:{...base,plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
   researcherChart=new Chart($("chartResearchers"),{type:"bar",data:{labels:[],datasets:[{label:"Registros",data:[],backgroundColor:"rgba(195,112,66,.78)",borderColor:"#b9633c",borderWidth:1,borderRadius:4}]},options:{...base,indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>it.raw+" registros"}}}}});
-  if(typeof L.heatLayer==="function") carbonHeatLayer=L.heatLayer([],{radius:48,blur:30,maxZoom:12,minOpacity:.58,gradient:{.1:"#3182bd",.35:"#38a89b",.58:"#8cc65d",.78:"#f2ce4a",1:"#dc4b36"}});
+  if(typeof L.heatLayer==="function") carbonHeatLayer=L.heatLayer([],{radius:48,blur:30,maxZoom:12,minOpacity:.58,gradient:{.1:"#3659d9",.3:"#7655d8",.52:"#d34f94",.76:"#f1834d",1:"#f0c446"}});
   else {carbonHeatLayer=L.layerGroup();carbonHeatLayer.setLatLngs=function(points){this.clearLayers();for(const p of points){const [lat,lon,w]=p,color=w>.78?"#c9463d":w>.55?"#e0a52f":w>.32?"#64a765":"#358eaa";L.circleMarker([lat,lon],{radius:13+19*w,stroke:false,fillColor:color,fillOpacity:.18+.32*w}).addTo(this);L.circleMarker([lat,lon],{radius:4+8*w,stroke:false,fillColor:color,fillOpacity:.85}).addTo(this);}};}
 }
 function getCarbonSelectedRows(){
