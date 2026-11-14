@@ -290,6 +290,10 @@ canvas{background:transparent}
     .import-submit{margin-top:9px;width:100%}
     .legacy-import{display:none!important}
     @media(max-width:680px){.workflow-actions>*{flex:1 1 100%;text-align:center}.auth-grid{grid-template-columns:1fr}.workflow-card{padding:12px}}
+
+.top-workflow-shell{max-width:1400px;margin:0 auto;padding:8px 18px 0}
+.top-workflow-shell .workflow-card{margin:0}
+@media(max-width:680px){.top-workflow-shell{padding:8px 14px 0}.top-workflow-shell .workflow-card{padding:14px}}
 </style>
 </head>
 
@@ -307,15 +311,7 @@ canvas{background:transparent}
   </div>
 </header>
 
-<div class="wrap">
-  <!-- LEFT -->
-  <div class="card">
-    <div class="hd">
-      <div class="ttl">1) Dados e mapeamento</div>
-      <button class="btn small" id="btnReset">Reset</button>
-    </div>
-    <div class="bd">
-      <div class="workflow-card" id="planilha">
+<div class="top-workflow-shell"><div class="workflow-card" id="planilha">
         <div class="workflow-title">Planilha-mãe do projeto</div>
         <p class="hint">Baixe a base atual, acrescente medições em novas linhas sem preencher o ID e envie o arquivo de volta. O sistema ignora os IDs que já existem e inclui apenas os novos registros.</p>
         <div id="authForm" class="auth-inline">
@@ -333,7 +329,17 @@ canvas{background:transparent}
         <div id="masterStatus" class="workflow-status" aria-live="polite">A base compartilhada carrega automaticamente. Para enviar dados, entre nesta tela.</div>
         <div id="masterPreview" class="hint"></div>
         <button class="btn import-submit" id="importMaster" disabled>Subir planilha e atualizar resultados</button>
-      </div>
+      </div></div>
+
+<div class="wrap">
+  <!-- LEFT -->
+  <div class="card">
+    <div class="hd">
+      <div class="ttl">1) Dados e mapeamento</div>
+      <button class="btn small" id="btnReset">Reset</button>
+    </div>
+    <div class="bd">
+      
       <div class="legacy-import" style="display:none" aria-hidden="true">
       <div class="grid2">
         <div>
