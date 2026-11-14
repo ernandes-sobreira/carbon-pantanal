@@ -1,0 +1,19 @@
+{
+  "name": "lakec-field-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Aplicativo móvel LAKE-C com coleta offline e transferência de campo entre celulares",
+  "scripts": {
+    "build": "node prepare-www.mjs && vite build",
+    "android:sync": "npm run build && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.4.3",
+    "@capacitor/core": "7.4.3",
+    "@squareetlabs/capacitor-nearby-multipeer": "1.1.30"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.4.3",
+    "vite": "6.4.1"
+  }
+}
