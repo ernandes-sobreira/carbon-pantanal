@@ -1224,7 +1224,17 @@ $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHea
           "OD da água (%)":r.dissolved_oxygen_percent
         };
       });
-      if(!rows.length)throw new Error("A base não retornou registros aprovados.");
+      if(!rows.length){
+        status.textContent=session?"Nenhum registro aprovado":"Entre no portal para ver os dados";
+        $("siteStatsBody").innerHTML='<tr><td colspan="7">Entre no portal dos alunos e sincronize para carregar os locais e estatísticas.</td></tr>';
+        $("emptySiteMean").textContent="Entre no portal e sincronize para comparar os locais.";
+        $("emptyDistribution").textContent="Entre no portal e sincronize para ver a distribuição.";
+        $("emptyTemporal").textContent="Entre no portal e sincronize para ver as séries temporais.";
+        $("emptyResearchers").textContent="Entre no portal de dados para visualizar os pesquisadores.";
+        if(!session) toast("Para carregar os locais, valores e nomes dos pesquisadores, entre no portal de dados e volte a esta página.");
+        else toast("Esta conta não encontrou registros aprovados visíveis.");
+        return;
+      }
       rawTable=rows;columns=Object.keys(rows[0]);
       $id("sheetSelect").replaceChildren();$id("sheetSelect").disabled=true;
       afterLoaded();
