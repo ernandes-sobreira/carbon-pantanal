@@ -178,11 +178,12 @@
 <header>
   <div class="title">
     <h1>Coletas — mapa, valores por local e comparações</h1>
-    <div class="sub">Upload CSV/XLSX → mapeie colunas → selecione locais → veja min/max e séries temporais (tema cinza).</div>
+    <div class="sub">Dados de carbono do projeto: mapa, filtros e análises atualizados a partir dos registros aprovados.</div>
   </div>
   <div class="row">
     <a class="btn small" href="./entrada.html">Portal de dados dos alunos</a>
-    <span class="pill" id="pillStatus">Sem dados carregados</span>
+    <button class="btn small" id="btnSyncDb">Sincronizar banco</button>
+    <span class="pill" id="pillStatus">Conectando ao banco…</span>
     <button class="btn small ghost" id="btnDemo">Carregar demo</button>
   </div>
 </header>
@@ -400,6 +401,7 @@ function fmtNum(x){
   return (Math.abs(n)>=1000) ? n.toLocaleString("pt-BR") : n.toLocaleString("pt-BR",{maximumFractionDigits: 4});
 }
 function safeStr(x){ return (x===null || x===undefined) ? "" : String(x); }
+function escapeHTML(x){ return safeStr(x).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("\'","&#39;"); }
 
 function guessColumn(regexList){
   const lower = columns.map(c=>c.toLowerCase());
@@ -518,29 +520,31 @@ function buildPrepared(){
 
   for(const r of rawTable){
     const site = safeStr(r[siteCol]).trim();
-    const lat = Number(r[latCol]);
-    const lon = Number(r[lonCol]);
+    const latRaw = r[latCol], lonRaw = r[lonCol], valueRaw = r[valCol];
+    const lat = latRaw===null || latRaw===undefined || String(latRaw).trim()==="" ? NaN : Number(latRaw);
+    const lon = lonRaw===null || lonRaw===undefined || String(lonRaw).trim()==="" ? NaN : Number(lonRaw);
     const d = parseDateAny(r[dateCol]);
-    const v = Number(r[valCol]);
+    const v = valueRaw===null || valueRaw===undefined || String(valueRaw).trim()==="" ? NaN : Number(valueRaw);
 
-    if(!site) continue;
-    if(!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    if(!d || isNaN(d)) continue;
-    if(!Number.isFinite(v)) continue;
+    if(!site || !Number.isFinite(v)) continue;
+    if(Number.isFinite(lat) && (lat < -90 || lat > 90)) continue;
+    if(Number.isFinite(lon) && (lon < -180 || lon > 180)) continue;
 
-    const iso = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
-    const row = { site, lat, lon, dateISO: iso, ts: d.getTime(), value: v, rowRef: r };
+    const dated = d && !isNaN(d);
+    const iso = dated ? new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10) : "Sem data";
+    const row = { site, lat, lon, dateISO: iso, ts: dated ? d.getTime() : NaN, value: v, rowRef: r };
     prepared.push(row);
 
     if(!sites.has(site)){
-      sites.set(site, { lat, lon, rows: [] });
+      sites.set(site, { lat:Number.isFinite(lat)&&Number.isFinite(lon)?lat:null, lon:Number.isFinite(lat)&&Number.isFinite(lon)?lon:null, rows: [] });
     }
+    if(!Number.isFinite(sites.get(site).lat) && Number.isFinite(lat) && Number.isFinite(lon)){ sites.get(site).lat=lat; sites.get(site).lon=lon; }
     sites.get(site).rows.push(row);
   }
 
   // ordena por tempo dentro de cada site
   for(const [k, obj] of sites.entries()){
-    obj.rows.sort((a,b)=> a.ts-b.ts);
+    obj.rows.sort((a,b)=> (Number.isFinite(a.ts)?a.ts:-Infinity) - (Number.isFinite(b.ts)?b.ts:-Infinity));
   }
 }
 
@@ -577,8 +581,8 @@ function renderSitesList(){
     const txt = document.createElement("div");
     txt.style.minWidth = "0";
     txt.innerHTML = `
-      <div class="site-name">${s}</div>
-      <div class="site-meta">${meta.rows.length} regs • último: ${last.dateISO} • ${fmtNum(last.value)}</div>
+      <div class="site-name">${escapeHTML(s)}</div>
+      <div class="site-meta">${meta.rows.length} regs • último: ${escapeHTML(last.dateISO)} • ${fmtNum(last.value)}${Number.isFinite(meta.lat)&&Number.isFinite(meta.lon)?"":" • sem coordenadas"}</div>
     `;
 
     left.appendChild(cb);
@@ -586,9 +590,10 @@ function renderSitesList(){
 
     const btn = document.createElement("button");
     btn.className = "btn small ghost";
-    btn.textContent = "Focar";
+    btn.textContent = Number.isFinite(meta.lat)&&Number.isFinite(meta.lon) ? "Focar" : "Sem coord.";
+    btn.disabled = !(Number.isFinite(meta.lat)&&Number.isFinite(meta.lon));
     btn.addEventListener("click", ()=>{
-      map.setView([meta.lat, meta.lon], 14);
+      if(Number.isFinite(meta.lat)&&Number.isFinite(meta.lon)) map.setView([meta.lat, meta.lon], 14);
     });
 
     div.appendChild(left);
@@ -612,6 +617,7 @@ function renderMap(){
   const bounds = [];
   for(const [site, obj] of sites.entries()){
     if(!selectedSites.has(site)) continue;
+    if(!Number.isFinite(obj.lat) || !Number.isFinite(obj.lon)) continue;
 
     // aplica filtro de datas aos rows
     const filtered = applyDateFilter(obj.rows);
@@ -661,6 +667,7 @@ function applyDateFilter(rows){
   const e = $("dateEnd").value ? new Date($("dateEnd").value).getTime() : null;
 
   return rows.filter(r=>{
+    if((s || e) && !Number.isFinite(r.ts)) return false;
     if(s && r.ts < s) return false;
     if(e && r.ts > (e + 24*3600*1000 - 1)) return false; // inclui o dia final
     return true;
@@ -870,9 +877,9 @@ $("btnApply").addEventListener("click", ()=>{
   }
 
   // datas default
-  const allDates = prepared.map(r=>r.dateISO).sort();
-  $("dateStart").value = allDates[0];
-  $("dateEnd").value = allDates[allDates.length-1];
+  const allDates = prepared.filter(r=>Number.isFinite(r.ts)).map(r=>r.dateISO).sort();
+  $("dateStart").value = allDates[0] || "";
+  $("dateEnd").value = allDates[allDates.length-1] || "";
 
   renderSitesList();
   refreshAll();
@@ -899,7 +906,7 @@ $("btnFit").addEventListener("click", ()=>{
   const bounds=[];
   for(const [site,obj] of sites.entries()){
     if(!selectedSites.has(site)) continue;
-    bounds.push([obj.lat,obj.lon]);
+    if(Number.isFinite(obj.lat)&&Number.isFinite(obj.lon)) bounds.push([obj.lat,obj.lon]);
   }
   if(bounds.length) map.fitBounds(bounds, {padding:[30,30]});
 });
@@ -965,6 +972,57 @@ $("btnDemo").addEventListener("click", ()=>{
 initMap();
 initChart();
 renderKPIs();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
+<script>
+(function(){
+  const SB_URL="https://lyaettnqmkiygxgetbqf.supabase.co";
+  const SB_KEY="sb_publishable_4_t_C4Ry673olIFl7Ecn0g_3y-Abwmp";
+  const db=window.supabase.createClient(SB_URL,SB_KEY);
+  const $id=id=>document.getElementById(id);
+  async function loadCarbonProject(){
+    const button=$id("btnSyncDb"), status=$id("pillStatus");
+    button.disabled=true; status.textContent="Sincronizando banco…";
+    try{
+      const records=[];
+      for(let from=0; ; from+=1000){
+        const {data,error}=await db.from("carbon_public_map").select("*").order("effective_date",{ascending:true}).range(from,from+999);
+        if(error) throw error;
+        records.push(...(data||[]));
+        if(!data || data.length<1000) break;
+        if(from>=49000) throw new Error("O conjunto excedeu o limite desta página.");
+      }
+      const rows=records.map(r=>({
+        "Local":r.site_label, "Latitude":r.latitude, "Longitude":r.longitude, "Data":r.effective_date,
+        "Fluxo CO2 solo (mg/m2/dia)":r.record_type==="soil"?r.flux_mg_co2_m2_day:null,
+        "Fluxo CO2 água (mg/m2/dia)":r.record_type==="water"?r.flux_mg_co2_m2_day:null,
+        "Temperatura do solo (°C)":r.soil_temperature_c, "pH do solo":r.soil_ph,
+        "Matéria orgânica do solo":r.soil_organic_matter, "Condutividade do solo":r.soil_conductivity,
+        "Temperatura da água (°C)":r.water_temperature_c, "OD da água (mg/L)":r.dissolved_oxygen_mg_l,
+        "pH da água":r.water_ph, "Condutividade da água (µS/cm)":r.water_conductivity_us_cm,
+        "OD da água (%)":r.dissolved_oxygen_percent
+      }));
+      if(!rows.length) throw new Error("A consulta não retornou registros aprovados.");
+      rawTable=rows; columns=Object.keys(rows[0]);
+      $id("sheetSelect").innerHTML=""; $id("sheetSelect").disabled=true;
+      afterLoaded();
+      $id("colSite").value="Local"; $id("colLat").value="Latitude";
+      $id("colLon").value="Longitude"; $id("colDate").value="Data";
+      $id("colValue").value="Fluxo CO2 solo (mg/m2/dia)";
+      $id("btnApply").click();
+      const mappedRows=prepared.length;
+      const noCoords=rows.filter(r=>r.Latitude==null || r.Longitude==null).length;
+      status.textContent=`Banco sincronizado • ${records.length.toLocaleString("pt-BR")} aprovados`;
+      toast(`Banco sincronizado: ${mappedRows.toLocaleString("pt-BR")} medições de solo válidas. ${noCoords.toLocaleString("pt-BR")} registros sem coordenadas permanecem nas análises, fora do mapa.`);
+    }catch(error){
+      console.error(error); status.textContent="Falha ao sincronizar";
+      toast("Não foi possível ler o banco do projeto. Confira a conexão e tente sincronizar novamente.",true);
+    }finally{button.disabled=false;}
+  }
+  $id("btnSyncDb").addEventListener("click",loadCarbonProject);
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",loadCarbonProject,{once:true});
+  else loadCarbonProject();
+})();
 </script>
 </body>
 </html>
