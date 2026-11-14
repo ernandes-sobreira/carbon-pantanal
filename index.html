@@ -178,7 +178,7 @@
 <header>
   <div class="title">
     <h1>Coletas — mapa, valores por local e comparações</h1>
-    <div class="sub">Dados de carbono do projeto: mapa, filtros e análises atualizados a partir dos registros aprovados.</div>
+    <div class="sub">Mapa e análises a partir dos registros aprovados. Entre no portal de dados para carregar a base compartilhada.</div>
   </div>
   <div class="row">
     <a class="btn small" href="./entrada.html">Portal de dados dos alunos</a>
@@ -1002,7 +1002,7 @@ renderKPIs();
         "pH da água":r.water_ph, "Condutividade da água (µS/cm)":r.water_conductivity_us_cm,
         "OD da água (%)":r.dissolved_oxygen_percent
       }));
-      if(!rows.length) throw new Error("A consulta não retornou registros aprovados.");
+      if(!rows.length){status.textContent="Acesse o portal e entre para ver a base";toast("Entre com sua conta em “Portal de dados dos alunos” e volte ao mapa para carregar os registros aprovados.");return;}
       rawTable=rows; columns=Object.keys(rows[0]);
       $id("sheetSelect").innerHTML=""; $id("sheetSelect").disabled=true;
       afterLoaded();
