@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carbon Pantanal | Portal de dados</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#101318;--panel:#191e26;--panel2:#202631;--line:#303947;--text:#f0f3f8;--muted:#aeb8c7;--accent:#c4d2bd;--green:#a8d2aa;--red:#f0a7a7;--blue:#a9c7e8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 500px at 15% 0,#202a2d,var(--bg) 68%);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Arial}
+header{max-width:1250px;margin:auto;padding:24px 20px 12px;display:flex;justify-content:space-between;gap:18px;align-items:center}
+h1{font-size:24px;margin:0 0 4px}.sub,.hint,.muted{color:var(--muted);font-size:13px}.wrap{max-width:1250px;margin:auto;padding:12px 20px 36px}
+.card{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 15px 42px #0004;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.right{margin-left:auto}
+button,.button{border:1px solid #596454;background:#303c33;color:var(--text);padding:10px 14px;border-radius:10px;font-weight:650;cursor:pointer;text-decoration:none;font-size:13px}
+button:hover,.button:hover{filter:brightness(1.15)}button.secondary{background:#252d37;border-color:var(--line)}button.danger{background:#442a2a;border-color:#714343}
+input,select,textarea{width:100%;background:#11161d;color:var(--text);border:1px solid #3a4552;border-radius:9px;padding:10px;font:inherit}
+label{display:block;color:var(--muted);font-size:12px;margin:0 0 5px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.field{min-width:0}.full{grid-column:1/-1}.hidden{display:none!important}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi{border:1px solid var(--line);background:#11161d;border-radius:12px;padding:12px}.kpi b{font-size:20px;display:block}.kpi span{font-size:12px;color:var(--muted)}
+#map{height:390px;border-radius:12px;border:1px solid var(--line);z-index:1}.section{margin-top:14px}.pill{border:1px solid var(--line);background:#232a34;color:var(--muted);border-radius:99px;padding:5px 9px;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 7px;vertical-align:top}th{color:var(--muted);font-weight:600}td{max-width:240px;overflow-wrap:anywhere}
+.tablewrap{overflow:auto;max-height:420px}.notice{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#11161d;color:var(--muted);font-size:13px}.notice.good{color:var(--green)}.notice.bad{color:var(--red)}
+#toast{position:fixed;bottom:16px;right:16px;z-index:10000;max-width:min(420px,calc(100vw - 32px));padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#111820;box-shadow:0 12px 36px #0008;display:none}
+.auth{max-width:500px;margin:32px auto}.auth .grid{grid-template-columns:1fr}.divider{border:0;border-top:1px solid var(--line);margin:16px 0}
+@media(max-width:720px){header{padding:18px 14px 8px;align-items:flex-start;flex-direction:column}.wrap{padding:8px 14px 28px}.grid,.grid3{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}#map{height:320px}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<header><div><h1>Carbon Pantanal</h1><div class="sub">Portal de campo · cadastro, conferência e análise de fluxos de carbono</div></div><div class="row"><a class="button secondary" href="./index.html">Voltar ao mapa</a><button id="signOut" class="secondary hidden">Sair</button></div></header>
+<main class="wrap">
+<section id="authPanel" class="card auth">
+<h2>Acesso de pesquisadores</h2><p class="muted">Entre com seu e-mail para registrar medições. Os novos registros ficam pendentes de conferência antes de aparecerem na análise compartilhada.</p>
+<div class="grid">
+<div class="field"><label for="fullName">Nome</label><input id="fullName" autocomplete="name" placeholder="Nome completo"></div>
+<div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="seu e-mail"></div>
+<div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="Mínimo de 8 caracteres"></div>
+<div class="row"><button id="login">Entrar</button><button id="signup" class="secondary">Criar conta</button></div>
+<div id="authMsg" class="notice full hidden"></div></div></section>
+<div id="app" class="hidden">
+<section class="card"><div class="row"><div><h2 id="welcome">Painel da pesquisa</h2><div class="muted">Dados aprovados alimentam o mapa e os resumos; seus envios pendentes ficam disponíveis para conferência.</div></div><span id="rolePill" class="pill right">Pesquisador</span></div>
+<div class="hint section">Para interpretar o fluxo, filtre Solo ou Água; os compartimentos são resumidos separadamente. A dispersão abaixo é o desvio-padrão amostral.</div><div class="kpis section"><div class="kpi"><b id="nRecords">0</b><span>Registros visíveis</span></div><div class="kpi"><b id="nSites">0</b><span>Locais com dados</span></div><div class="kpi"><b id="meanFlux">—</b><span>Média no filtro atual (mg CO₂ m⁻² d⁻¹)</span></div><div class="kpi"><b id="medianFlux">—</b><span>Mediana do fluxo</span></div><div class="kpi"><b id="sdFlux">—</b><span>Desvio-padrão amostral</span></div><div class="kpi"><b id="minFlux">—</b><span>Mínimo</span></div><div class="kpi"><b id="maxFlux">—</b><span>Máximo</span></div><div class="kpi"><b id="nPending">0</b><span>Seus registros pendentes</span></div></div></section>
+<section id="adminClaim" class="card hidden"><h2>Ativar coordenação do projeto</h2><p class="muted">Use este recurso uma única vez, somente na primeira conta da coordenação. Pesquisadores e alunos não precisam preencher este campo.</p><div class="grid"><div class="field"><label for="adminCode">Código inicial de coordenação</label><input id="adminCode" type="password" autocomplete="off"></div><div class="row"><button id="claimAdmin">Ativar perfil de coordenação</button></div></div></section>
+<section class="card"><h2>Novo registro de campo</h2><div class="grid">
+<div class="field"><label for="recordType">Compartimento</label><select id="recordType"><option value="soil">Solo</option><option value="water">Água</option></select></div>
+<div class="field"><label for="sampleDate">Data da coleta</label><input id="sampleDate" type="date" required></div>
+<div class="field"><label for="projectName">Projeto / campanha</label><input id="projectName" placeholder="Ex.: fluxos de carbono no Pantanal"></div>
+<div class="field"><label for="pointCode">Código do ponto</label><input id="pointCode" placeholder="Ex.: P1, Ponto 2"></div>
+<div class="field full"><label for="siteSelect">Local já cadastrado</label><select id="siteSelect"><option value="">Carregando locais...</option></select></div>
+<div class="full notice">Se o local ainda não existir, informe o nome e as coordenadas em graus decimais. Latitude e longitude devem usar sinal negativo para o hemisfério sul e oeste.</div>
+<div class="field"><label for="newSite">Nome do novo local (opcional)</label><input id="newSite" placeholder="Ex.: Córrego Fontes"></div>
+<div class="field"><label for="locality">Município / região</label><input id="locality" value="Cáceres, MT"></div>
+<div class="field"><label for="latitude">Latitude decimal</label><input id="latitude" type="number" step="any" placeholder="-16.06075"></div>
+<div class="field"><label for="longitude">Longitude decimal</label><input id="longitude" type="number" step="any" placeholder="-57.66447"></div>
+<div class="field"><label for="replicate">Réplica</label><input id="replicate" type="number" min="1" step="1"></div>
+<div class="field"><label for="treatment">Tratamento</label><input id="treatment" placeholder="Ex.: vegetado, nascente, leito aberto"></div>
+<div class="field"><label for="chamber">Câmara</label><input id="chamber" placeholder="Ex.: clara, escura, transparente"></div>
+<div class="field"><label for="flux">Fluxo de CO₂ (mg/m²/dia)</label><input id="flux" type="number" step="any"></div>
+<div id="soilFields" class="grid full">
+<div class="field"><label for="soilState">Estado do solo</label><input id="soilState"></div><div class="field"><label for="soilPH">pH do solo</label><input id="soilPH" type="number" step="any"></div>
+<div class="field"><label for="soilTemp">Temperatura do solo (°C)</label><input id="soilTemp" type="number" step="any"></div><div class="field"><label for="soilOM">Matéria orgânica</label><input id="soilOM" type="number" step="any"></div><div class="field"><label for="soilCond">Condutividade do solo</label><input id="soilCond" type="number" step="any"></div>
+</div>
+<div id="waterFields" class="grid full hidden">
+<div class="field"><label for="season">Período sazonal</label><select id="season"><option value="">Selecione</option><option>CHUVOSO</option><option>ESTIAGEM</option><option>TRANSIÇÃO</option></select></div>
+<div class="field"><label for="compartment">Compartimento</label><input id="compartment" placeholder="Ex.: limnético"></div>
+<div class="field"><label for="waterTemp">Temperatura da água (°C)</label><input id="waterTemp" type="number" step="any"></div><div class="field"><label for="do">Oxigênio dissolvido (mg/L)</label><input id="do" type="number" step="any"></div>
+<div class="field"><label for="waterPH">pH da água</label><input id="waterPH" type="number" step="any"></div><div class="field"><label for="waterCond">Condutividade (µS/cm)</label><input id="waterCond" type="number" step="any"></div>
+<div class="field"><label for="doPct">Oxigênio dissolvido (%)</label><input id="doPct" type="number" step="any"></div>
+</div>
+<div class="field full"><label for="notes">Observações / protocolo</label><textarea id="notes" rows="2"></textarea></div>
+<div class="row full"><button id="saveRecord">Salvar medição</button><span class="muted">O fluxo aceita valores negativos e positivos. Confira a unidade antes de enviar.</span></div>
+</div></section>
+<section id="adminPanel" class="card hidden"><div class="row"><h2>Conferência de registros</h2><span id="pendingCount" class="pill right">0 pendentes</span></div><div class="tablewrap"><table><thead><tr><th>Data</th><th>Aluno</th><th>Local</th><th>Tipo</th><th>Fluxo</th><th>Ação</th></tr></thead><tbody id="pendingBody"></tbody></table></div></section>
+<section class="card"><div class="row"><div><h2>Mapa e dados aprovados</h2><div class="muted">Selecione um ponto para ver o local e o número de medições.</div></div><button id="exportCsv" class="secondary right">Baixar CSV</button></div><div id="map" class="section"></div>
+<div class="grid section"><div class="field"><label for="filterType">Compartimento</label><select id="filterType"><option value="">Todos</option><option value="soil">Solo</option><option value="water">Água</option></select></div><div class="field"><label for="filterSite">Local</label><select id="filterSite"><option value="">Todos</option></select></div></div>
+<div class="tablewrap section"><table><thead><tr><th>Data</th><th>Local</th><th>Tipo</th><th>Projeto</th><th>Tratamento</th><th>Réplica</th><th>Fluxo CO₂</th></tr></thead><tbody id="recordsBody"></tbody></table></div></section>
+<section class="card"><h2>Seus envios aguardando conferência</h2><div class="tablewrap"><table><thead><tr><th>Data</th><th>Local</th><th>Tipo</th><th>Fluxo CO₂</th><th>Estado</th></tr></thead><tbody id="ownBody"></tbody></table></div></section>
+</div></main><div id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
+<script>
+const SB_URL='https://lyaettnqmkiygxgetbqf.supabase.co';
+const SB_KEY='sb_publishable_4_t_C4Ry673olIFl7Ecn0g_3y-Abwmp';
+const db=window.supabase.createClient(SB_URL,SB_KEY);
+const $=id=>document.getElementById(id);let currentUser=null,profile=null,sites=[],approved=[],ownPending=[],map=null,markers=null;
+function toast(s,bad=false){const t=$('toast');t.textContent=s;t.style.display='block';t.style.borderColor=bad?'#a55':'#587254';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display='none',4500)}
+function val(id){const x=$(id).value.trim();return x===''?null:x}
+function num(id){const x=val(id);return x===null?null:Number(x)}
+function txt(el,s){el.textContent=s??''}
+function setAuthMessage(s,bad=false){$('authMsg').classList.remove('hidden','good','bad');$('authMsg').classList.add(bad?'bad':'good');txt($('authMsg'),s)}
+function esc(s){return String(s??'')}
+function showType(){const soil=$('recordType').value==='soil';$('soilFields').classList.toggle('hidden',!soil);$('waterFields').classList.toggle('hidden',soil)}
+$('recordType').addEventListener('change',showType);
+function addOption(sel,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;sel.append(o)}
+function siteLabel(s){const n=sites.filter(x=>x.site_name===s.site_name).length;const coords=s.latitude!=null&&s.longitude!=null?' · '+Number(s.latitude).toFixed(4)+', '+Number(s.longitude).toFixed(4):' · sem coordenadas';return s.site_name+(n>1?coords:'')+(s.locality?' · '+s.locality:'')}
+async function start(){
+ const {data:{session}}=await db.auth.getSession();
+ if(session){currentUser=session.user;await loadApp()}else{$('authPanel').classList.remove('hidden');$('app').classList.add('hidden')}
+}
+$('signup').onclick=async()=>{const email=val('email'),password=$('password').value,name=val('fullName');if(!email||!password||!name)return setAuthMessage('Informe nome, e-mail e senha.',true);if(password.length<8)return setAuthMessage('Use uma senha com pelo menos 8 caracteres.',true);const {error}=await db.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:location.href}});if(error)return setAuthMessage(error.message,true);setAuthMessage('Conta criada. Se a confirmação por e-mail estiver ativa, confirme a mensagem recebida e depois entre aqui.')};
+$('login').onclick=async()=>{const {data,error}=await db.auth.signInWithPassword({email:val('email'),password:$('password').value});if(error)return setAuthMessage(error.message,true);currentUser=data.user;await loadApp()};
+$('signOut').onclick=async()=>{await db.auth.signOut();location.reload()};
+$('claimAdmin').onclick=async()=>{const code=$('adminCode').value.trim();if(!code)return toast('Informe o código inicial.',true);const {data,error}=await db.rpc('carbon_claim_admin',{p_code:code});$('adminCode').value='';if(error)return toast('Não foi possível ativar a coordenação: '+error.message,true);if(data!==true)return toast('Código inválido ou já utilizado.',true);toast('Coordenação ativada.');await loadApp()};
+db.auth.onAuthStateChange((_event,session)=>{if(session&&!currentUser){currentUser=session.user;setTimeout(loadApp,0)}});
+async function loadApp(){
+ if(!currentUser)return; $('authPanel').classList.add('hidden');$('app').classList.remove('hidden');$('signOut').classList.remove('hidden');
+ const p=await db.from('carbon_profiles').select('display_name,role,active').eq('user_id',currentUser.id).maybeSingle();profile=p.data;
+ txt($('welcome'),'Olá, '+(profile?.display_name||currentUser.email));txt($('rolePill'),profile?.role==='admin'?'Coordenação':'Pesquisador');
+ $('adminPanel').classList.toggle('hidden',profile?.role!=='admin');$('adminClaim').classList.toggle('hidden',profile?.role==='admin');
+ await Promise.all([loadSites(),loadRecords(),loadPending()]);
+ if(!map){map=L.map('map').setView([-16.05,-57.65],9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);markers=L.layerGroup().addTo(map)}
+ render();
+}
+async function loadSites(){const {data,error}=await db.from('carbon_sites').select('id,site_name,locality,latitude,longitude').order('site_name');if(error){toast('Falha ao carregar locais: '+error.message,true);return}sites=data||[];$('siteSelect').replaceChildren(new Option('Selecione um local cadastrado',''));sites.forEach(s=>addOption($('siteSelect'),s.id,siteLabel(s)));$('filterSite').replaceChildren(new Option('Todos',''));sites.forEach(s=>addOption($('filterSite'),s.id,siteLabel(s)))}
+async function loadRecords(){const {data,error}=await db.from('carbon_records').select('*,carbon_sites(site_name,latitude,longitude,locality)').eq('review_status','approved').order('sample_date',{ascending:false}).limit(5000);if(error){toast('Falha ao carregar dados: '+error.message,true);return}approved=data||[]}
+async function loadPending(){const {data,error}=await db.from('carbon_records').select('*,carbon_sites(site_name)').eq('created_by',currentUser.id).eq('review_status','pending').order('created_at',{ascending:false});if(error){toast('Falha ao carregar seus envios: '+error.message,true);return}ownPending=data||[];txt($('nPending'),ownPending.length);renderOwn();if(profile?.role==='admin')renderAdmin()}
+function render(){let rows=approved.filter(r=>(!$('filterType').value||r.record_type===$('filterType').value)&&(!$('filterSite').value||r.site_id===$('filterSite').value));txt($('nRecords'),rows.length);const used=new Set(rows.map(r=>r.site_id));txt($('nSites'),used.size);const fs=rows.map(r=>Number(r.flux_mg_co2_m2_day)).filter(Number.isFinite).sort((a,b)=>a-b);const mean=fs.length?fs.reduce((a,b)=>a+b,0)/fs.length:null;const median=fs.length?(fs.length%2?fs[(fs.length-1)/2]:(fs[fs.length/2-1]+fs[fs.length/2])/2):null;const sd=fs.length>1?Math.sqrt(fs.reduce((z,x)=>z+(x-mean)**2,0)/(fs.length-1)):null;const fmt=x=>x===null?'—':x.toLocaleString('pt-BR',{maximumFractionDigits:1});txt($('meanFlux'),fmt(mean));txt($('medianFlux'),fmt(median));txt($('sdFlux'),fmt(sd));txt($('minFlux'),fmt(fs.length?fs[0]:null));txt($('maxFlux'),fmt(fs.length?fs[fs.length-1]:null));
+ const body=$('recordsBody');body.replaceChildren();rows.slice(0,1000).forEach(r=>{const tr=document.createElement('tr');[r.sample_date||(r.collection_year?'Ano '+r.collection_year:'—'),r.carbon_sites?.site_name,r.record_type==='soil'?'Solo':'Água',r.project_name,r.treatment,r.replicate,r.flux_mg_co2_m2_day].forEach(v=>{const td=document.createElement('td');td.textContent=esc(v);tr.append(td)});body.append(tr)});
+ if(markers){markers.clearLayers();const groups=new Map();rows.forEach(r=>{const s=r.carbon_sites;if(!s||s.latitude==null||s.longitude==null||!Number.isFinite(Number(s.latitude))||!Number.isFinite(Number(s.longitude)))return;const k=r.site_id;if(!groups.has(k))groups.set(k,{s,n:0});groups.get(k).n++});for(const {s,n} of groups.values())L.marker([s.latitude,s.longitude]).bindPopup('<b>'+esc(s.site_name)+'</b><br>'+n+' registros').addTo(markers);if(groups.size){const b=markers.getBounds();if(b.isValid())map.fitBounds(b.pad(.15))}}
+}
+function renderOwn(){const body=$('ownBody');body.replaceChildren();ownPending.forEach(r=>{const tr=document.createElement('tr');[r.sample_date,r.carbon_sites?.site_name,r.record_type==='soil'?'Solo':'Água',r.flux_mg_co2_m2_day,'Aguardando conferência'].forEach(v=>{const td=document.createElement('td');td.textContent=esc(v);tr.append(td)});body.append(tr)})}
+function renderAdmin(){const body=$('pendingBody');body.replaceChildren();txt($('pendingCount'),ownPending.length+' pendentes de todos');db.from('carbon_records').select('id,sample_date,student_name,record_type,flux_mg_co2_m2_day,carbon_sites(site_name)').eq('review_status','pending').order('created_at').limit(500).then(({data,error})=>{if(error)return toast(error.message,true);txt($('pendingCount'),(data||[]).length+' pendentes');(data||[]).forEach(r=>{const tr=document.createElement('tr');[r.sample_date,r.student_name,r.carbon_sites?.site_name,r.record_type==='soil'?'Solo':'Água',r.flux_mg_co2_m2_day].forEach(v=>{const td=document.createElement('td');td.textContent=esc(v);tr.append(td)});const td=document.createElement('td');const ok=document.createElement('button');ok.textContent='Aprovar';ok.onclick=()=>review(r.id,'approved');const no=document.createElement('button');no.textContent='Rejeitar';no.className='danger';no.onclick=()=>review(r.id,'rejected');td.append(ok,no);tr.append(td);body.append(tr)})})}
+async function review(id,status){const {error}=await db.from('carbon_records').update({review_status:status,reviewed_by:currentUser.id,reviewed_at:new Date().toISOString()}).eq('id',id);if(error)return toast('Falha ao atualizar: '+error.message,true);toast(status==='approved'?'Registro aprovado.':'Registro rejeitado.');await loadRecords();await loadPending();render()}
+$('filterType').onchange=render;$('filterSite').onchange=render;
+$('saveRecord').onclick=async()=>{try{if(!val('sampleDate'))throw Error('Informe a data da coleta.');let siteId=$('siteSelect').value;if(val('newSite')){const lat=num('latitude'),lon=num('longitude');if(lat===null||lon===null)throw Error('Informe latitude e longitude do novo local.');const site={site_name:val('newSite'),locality:val('locality'),latitude:lat,longitude:lon,project_name:val('projectName')};const {data,error}=await db.from('carbon_sites').upsert(site,{onConflict:'site_name,latitude,longitude'}).select('id').single();if(error)throw error;siteId=data.id}else if(!siteId)throw Error('Selecione um local ou cadastre um novo.');const soil=$('recordType').value==='soil';const row={record_type:soil?'soil':'water',sample_date:val('sampleDate'),site_id:siteId,project_name:val('projectName'),student_name:profile?.display_name||currentUser.email,point_code:val('pointCode'),replicate:num('replicate'),treatment:val('treatment'),chamber:val('chamber'),flux_mg_co2_m2_day:num('flux'),soil_state:soil?val('soilState'):null,soil_ph:soil?num('soilPH'):null,soil_temperature_c:soil?num('soilTemp'):null,soil_organic_matter:soil?num('soilOM'):null,soil_conductivity:soil?num('soilCond'):null,seasonal_period:!soil?val('season'):null,water_compartment:!soil?val('compartment'):null,water_temperature_c:!soil?num('waterTemp'):null,dissolved_oxygen_mg_l:!soil?num('do'):null,water_ph:!soil?num('waterPH'):null,water_conductivity_us_cm:!soil?num('waterCond'):null,dissolved_oxygen_percent:!soil?num('doPct'):null,notes:val('notes')};if(row.flux_mg_co2_m2_day===null)throw Error('Informe o fluxo de CO₂.');const {error}=await db.from('carbon_records').insert(row);if(error)throw error;toast('Medição salva e enviada para conferência.');['sampleDate','projectName','pointCode','replicate','treatment','chamber','flux','soilState','soilPH','soilTemp','soilOM','soilCond','season','compartment','waterTemp','do','waterPH','waterCond','doPct','notes','newSite','latitude','longitude'].forEach(id=>$(id).value='');await loadSites();await loadPending()}catch(e){toast(e.message||'Não foi possível salvar o registro.',true)}};
+$('exportCsv').onclick=()=>{const rows=approved.filter(r=>(!$('filterType').value||r.record_type===$('filterType').value)&&(!$('filterSite').value||r.site_id===$('filterSite').value));const cols=['sample_date_or_year','record_type','site','latitude','longitude','project_name','student_name','point_code','replicate','treatment','chamber','flux_mg_co2_m2_day','soil_ph','soil_temperature_c','water_temperature_c','dissolved_oxygen_mg_l','water_ph'];const quote=x=>'"'+String(x??'').replaceAll('"','""')+'"';const csv=[cols.map(quote).join(';'),...rows.map(r=>[r.sample_date||(r.collection_year?'Ano '+r.collection_year:''),r.record_type,r.carbon_sites?.site_name,r.carbon_sites?.latitude,r.carbon_sites?.longitude,r.project_name,r.student_name,r.point_code,r.replicate,r.treatment,r.chamber,r.flux_mg_co2_m2_day,r.soil_ph,r.soil_temperature_c,r.water_temperature_c,r.dissolved_oxygen_mg_l,r.water_ph].map(quote).join(';'))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='carbon-pantanal-dados.csv';a.click();URL.revokeObjectURL(a.href)};
+start();
+</script></body></html>
