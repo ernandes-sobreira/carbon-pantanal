@@ -560,7 +560,7 @@ function initChart(){
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      parsing: false,
+
       plugins: {
         legend: { labels: { color: "#34483a" } },
         tooltip: {
@@ -837,6 +837,10 @@ function renderChart(){
       return p ? p.y : null;
     }),
     borderWidth: 2,
+    borderColor:["#3288bd","#d96b5c","#7a9e45","#8e6bb1","#d39b32","#2d9f92","#5f77be","#b95e8f","#647d86","#a67c52"][idx%10],
+    backgroundColor:"transparent",
+    pointRadius:2,
+    pointHoverRadius:5,
     spanGaps: true
   }));
 
