@@ -232,6 +232,7 @@
     .site-stats th:first-child,.site-stats td:first-child{text-align:left}
     .temporal-analysis{padding-top:12px;border-top:1px solid var(--stroke)}
     .temporal-analysis .ttl{font-size:14px;color:var(--soft)}
+    #pillStatus.demo-state{background:#fff6dc;border-color:#edd78d;color:#75590c}
     .dash-filters{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;padding:12px;background:#f6f9f5;border:1px solid #e1e9df;border-radius:10px}
     .dash-filters>div{min-width:0}.dash-filters label{display:block;margin:0 0 5px;font-weight:650}.dash-filters select{min-height:38px}
     .stat .kpi{border-top:3px solid #5c9e70;background:linear-gradient(180deg,#f4faf3,#fff)}
@@ -455,6 +456,7 @@ let sites = new Map();     // site -> {lat, lon, rows:[]}
 let selectedSites = new Set();
 let map, clusterLayer;
 let chart;
+let isDemoData=false;
 
 /* ==============================
    Utils
@@ -935,6 +937,7 @@ let wbCache = null;
 $("fileInput").addEventListener("change", async (ev)=>{
   const f = ev.target.files?.[0];
   if(!f) return;
+  isDemoData=false;$("pillStatus").classList.remove("demo-state");
 
   try{
     const ext = f.name.toLowerCase().split(".").pop();
@@ -987,7 +990,7 @@ function afterLoaded(){
   fillSelect($("colLat"), columns);
   fillSelect($("colLon"), columns);
   fillSelect($("colDate"), columns);
-  fillSelect($("colValue"), columns);
+  fillSelect($("colValue"), columns.filter(c=>!/(^lat|latitude|longitude|^lon|replicate|replica|year|ano|^id$)/i.test(c)&&rawTable.some(r=>isNumber(r[c]))));
 
   autoDetect();
 }
@@ -1009,7 +1012,8 @@ $("btnApply").addEventListener("click", ()=>{
   renderSitesList();
   refreshAll();
 
-  $("pillStatus").textContent = "Dados prontos ✅";
+  $("pillStatus").textContent=isDemoData?"Prévia demonstrativa • dados fictícios":"Dados prontos ✅";
+  $("pillStatus").classList.toggle("demo-state",isDemoData);
   toast("Mapa e análises montados.");
 });
 
@@ -1037,7 +1041,7 @@ $("btnFit").addEventListener("click", ()=>{
 });
 
 $("btnReset").addEventListener("click", ()=>{
-  rawTable = []; columns = []; mapped=null; prepared=[]; sites=new Map(); selectedSites=new Set();
+  rawTable = [];isDemoData=false; columns = []; mapped=null; prepared=[]; sites=new Map(); selectedSites=new Set();
   $("fileInput").value = "";
   $("sheetSelect").innerHTML = ""; $("sheetSelect").disabled = true;
   ["colSite","colLat","colLon","colDate","colValue"].forEach(id=>{
@@ -1076,7 +1080,7 @@ $("btnDemo").addEventListener("click", ()=>{
       });
     }
   }
-  rawTable = demo;
+  rawTable = demo;isDemoData=true;
   columns = Object.keys(demo[0]);
 
   $("pillStatus").textContent = `Demo carregada • ${rawTable.length.toLocaleString("pt-BR")} linhas`;
@@ -1239,7 +1243,7 @@ $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHea
         else toast("Esta conta não encontrou registros aprovados visíveis.");
         return;
       }
-      rawTable=rows;columns=Object.keys(rows[0]);
+      rawTable=rows;isDemoData=false;columns=Object.keys(rows[0]);
       $id("sheetSelect").replaceChildren();$id("sheetSelect").disabled=true;
       afterLoaded();
       $id("colSite").value="Local";$id("colLat").value="Latitude";
