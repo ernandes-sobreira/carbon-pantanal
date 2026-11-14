@@ -23,6 +23,18 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;b
 #toast{position:fixed;bottom:16px;right:16px;z-index:10000;max-width:min(420px,calc(100vw - 32px));padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#111820;box-shadow:0 12px 36px #0008;display:none}
 .auth{max-width:500px;margin:32px auto}.auth .grid{grid-template-columns:1fr}.divider{border:0;border-top:1px solid var(--line);margin:16px 0}
 @media(max-width:720px){header{padding:18px 14px 8px;align-items:flex-start;flex-direction:column}.wrap{padding:8px 14px 28px}.grid,.grid3{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}#map{height:320px}.full{grid-column:auto}}
+/* Tema claro do projeto */
+:root{--bg:#f5f7f4;--panel:#fff;--panel2:#fff;--line:#e1e9df;--text:#26372c;--muted:#68756b;--accent:#39784d;--green:#39784d;--red:#b73f3f;--blue:#416e9c}
+body{background:#f5f7f4;color:var(--text)}
+.card{background:#fff;border-color:var(--line);box-shadow:0 2px 12px rgba(30,58,36,.06);border-radius:12px}
+button,.button{background:#edf4eb;color:#294332;border-color:#d7e4d4;border-radius:8px}
+button.secondary{background:#f7f9f6;border-color:var(--line);color:#34483a}
+button.danger{background:#fff3f2;color:#923b34;border-color:#f0d4d1}
+input,select,textarea{background:#fff;color:var(--text);border-color:#d7e0d5;border-radius:8px}
+.kpi,.notice{background:#f8faf7;border-color:var(--line);color:var(--text)}
+.pill{background:#f2f6f1;color:#526455;border-color:#e0e8de}
+th{color:var(--muted)}td,th{border-bottom-color:var(--line)}
+#toast{background:#fff;color:var(--text);border-color:var(--line);box-shadow:0 4px 18px rgba(27,55,34,.12)}
 </style>
 </head>
 <body>
@@ -30,6 +42,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;b
 <main class="wrap">
 <section id="authPanel" class="card auth">
 <h2>Acesso de pesquisadores</h2><p class="muted">Entre com seu e-mail para registrar medições. Os novos registros ficam pendentes de conferência antes de aparecerem na análise compartilhada.</p>
+<p class="notice">Cada aluno usa seu e-mail e sua senha. Crie a conta uma vez; depois, use Entrar para registrar e acompanhar as coletas.</p>
 <div class="grid">
 <div class="field"><label for="fullName">Nome</label><input id="fullName" autocomplete="name" placeholder="Nome completo"></div>
 <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="seu e-mail"></div>
@@ -97,7 +110,7 @@ async function start(){
  const {data:{session}}=await db.auth.getSession();
  if(session){currentUser=session.user;await loadApp()}else{$('authPanel').classList.remove('hidden');$('app').classList.add('hidden')}
 }
-$('signup').onclick=async()=>{const email=val('email'),password=$('password').value,name=val('fullName');if(!email||!password||!name)return setAuthMessage('Informe nome, e-mail e senha.',true);if(password.length<8)return setAuthMessage('Use uma senha com pelo menos 8 caracteres.',true);const {error}=await db.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:location.href}});if(error)return setAuthMessage(error.message,true);setAuthMessage('Conta criada. Se a confirmação por e-mail estiver ativa, confirme a mensagem recebida e depois entre aqui.')};
+$('signup').onclick=async()=>{const email=val('email'),password=$('password').value,name=val('fullName');if(!email||!password||!name)return setAuthMessage('Informe nome, e-mail e senha.',true);if(password.length<8)return setAuthMessage('Use uma senha com pelo menos 8 caracteres.',true);const {error}=await db.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:location.href}});if(error){const limited=error.status===429||/rate limit|over_email_send_rate_limit/i.test(error.message||'');return setAuthMessage(limited?'O serviço limitou temporariamente o envio de e-mails de confirmação. Aguarde antes de tentar criar outra conta.':error.message,true)}setAuthMessage('Conta criada. Se a confirmação por e-mail estiver ativa, confirme a mensagem recebida e depois entre aqui.')};
 $('login').onclick=async()=>{const {data,error}=await db.auth.signInWithPassword({email:val('email'),password:$('password').value});if(error)return setAuthMessage(error.message,true);currentUser=data.user;await loadApp()};
 $('signOut').onclick=async()=>{await db.auth.signOut();location.reload()};
 $('claimAdmin').onclick=async()=>{const code=$('adminCode').value.trim();if(!code)return toast('Informe o código inicial.',true);const {data,error}=await db.rpc('carbon_claim_admin',{p_code:code});$('adminCode').value='';if(error)return toast('Não foi possível ativar a coordenação: '+error.message,true);if(data!==true)return toast('Código inválido ou já utilizado.',true);toast('Coordenação ativada.');await loadApp()};
