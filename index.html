@@ -201,8 +201,12 @@
     .pill{background:#f2f6f1;color:#526455;border-color:#e0e8de}
     .divider{background:var(--stroke)}
     .analysis-card,.kpi{background:#fff;border-color:var(--stroke);border-radius:10px}
-    .analysis-row{gap:14px;margin-top:4px}.analysis-canvas{height:240px}
-    canvas{background:#fff;border-color:#e6ebe4;border-radius:8px}
+    .analysis-row{gap:14px;margin-top:4px} .analysis-canvas{height:240px;position:relative}
+    .temporal-canvas{height:260px;position:relative}
+    .chart-empty{position:absolute;inset:0;display:grid;place-items:center;padding:16px;text-align:center;color:var(--muted);font-size:12px;background:rgba(255,255,255,.94);border-radius:8px;z-index:2}
+    .chart-empty[hidden]{display:none}
+    canvas{background:transparent;border-color:#e6ebe4;border-radius:8px}
+    .analysis-canvas canvas,.temporal-canvas canvas{background:#fff}
     #chart{width:100%;height:260px!important}
     .sites{max-height:320px}.site-item{border-radius:8px}
     .site-item:hover{background:#f6f9f5;border-color:#e5ece3}
@@ -381,12 +385,12 @@
         <section class="analysis-card">
           <div class="analysis-title">Média da variável por local</div>
           <div class="analysis-note">Compara os locais selecionados; exibe até 15 com registros válidos.</div>
-          <div class="analysis-canvas"><canvas id="chartSiteMean"></canvas></div>
+          <div class="analysis-canvas"><div class="chart-empty" id="emptySiteMean">Carregue dados para comparar as médias por local.</div><canvas id="chartSiteMean"></canvas></div>
         </section>
         <section class="analysis-card">
           <div class="analysis-title">Distribuição dos valores</div>
           <div class="analysis-note">Histograma: quantidade de registros em cada faixa da variável selecionada.</div>
-          <div class="analysis-canvas"><canvas id="chartDistribution"></canvas></div>
+          <div class="analysis-canvas"><div class="chart-empty" id="emptyDistribution">Carregue dados para ver a distribuição dos valores.</div><canvas id="chartDistribution"></canvas></div>
         </section>
       </div>
       <div class="temporal-analysis">
@@ -394,7 +398,8 @@
           <div class="ttl">Comparação temporal (locais selecionados)</div>
           <div class="hint">Linha por local (média diária). Use poucos locais pra ficar legível.</div>
         </div>
-        <div style="margin-top:8px">
+        <div class="temporal-canvas">
+          <div class="chart-empty" id="emptyTemporal">Carregue dados com datas para comparar a série temporal.</div>
           <canvas id="chart" height="150"></canvas>
         </div>
       </div>
@@ -1064,6 +1069,7 @@ function getCarbonSelectedRows(){
   for(const [site,obj] of sites.entries()){if(!selectedSites.has(site))continue;for(const r of applyDateFilter(obj.rows))out.push({...r,site});}
   return out;
 }
+function updateCarbonChartStates(){const hasData=prepared.length>0;$("emptySiteMean").hidden=hasData;$("emptyDistribution").hidden=hasData;$("emptyTemporal").hidden=hasData&&prepared.some(r=>Number.isFinite(r.ts));}
 function renderCarbonAnalysisCharts(){
   if(!analysisMeanChart||!analysisDistributionChart)return;
   const rows=getCarbonSelectedRows();
@@ -1088,12 +1094,13 @@ function renderCarbonHeatmap(){
 }
 initCarbonAnalysisCharts();
 const baseRefreshAll=refreshAll;
-refreshAll=function(){baseRefreshAll();renderCarbonAnalysisCharts();renderCarbonHeatmap();};
+refreshAll=function(){baseRefreshAll();renderCarbonAnalysisCharts();renderCarbonHeatmap();updateCarbonChartStates();};
+updateCarbonChartStates();
 const baseRenderSitesList=renderSitesList;
 renderSitesList=function(){baseRenderSitesList();$("btnHeat").disabled=false;};
 $("btnHeat").setAttribute("aria-pressed","false");
 $("btnHeat").addEventListener("click",()=>{carbonHeatEnabled=!carbonHeatEnabled;$("btnHeat").textContent=carbonHeatEnabled?"Ocultar heatmap":"Heatmap de localização";$("btnHeat").setAttribute("aria-pressed",String(carbonHeatEnabled));$("heatLegend").classList.toggle("show",carbonHeatEnabled);if(carbonHeatEnabled)renderCarbonHeatmap();else if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);});
-$("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);$("btnHeat").textContent="Heatmap de localização";$("btnHeat").setAttribute("aria-pressed","false");$("heatLegend").classList.remove("show");$("btnHeat").disabled=true;if(analysisMeanChart){analysisMeanChart.data.labels=[];analysisMeanChart.data.datasets[0].data=[];analysisMeanChart.update();analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();}});
+$("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);$("btnHeat").textContent="Heatmap de localização";$("btnHeat").setAttribute("aria-pressed","false");$("heatLegend").classList.remove("show");$("btnHeat").disabled=true;if(analysisMeanChart){analysisMeanChart.data.labels=[];analysisMeanChart.data.datasets[0].data=[];analysisMeanChart.update();analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();}updateCarbonChartStates();});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
 <script>
