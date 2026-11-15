@@ -8,7 +8,7 @@
   const $=id=>document.getElementById(id);
   function readPoints(){try{const x=JSON.parse(localStorage.getItem(POINT_KEY)||"null");if(Array.isArray(x)&&x.length)return x}catch(e){}return START.map((xy,i)=>({id:"V"+String(i+1).padStart(2,"0"),lat:xy[0],lon:xy[1],source:"Mapa compartilhado LAKE-C"}))}
   let pins=readPoints(),selected=pins[0]&&pins[0].id,baseImage=null,baseUrl=null,mapDb=null;
-  function defaultBounds(){const la=pins.map(p=>+p.lat),lo=pins.map(p=>+p.lon),m=.008;return{north:Math.max.apply(null,la)+m,south:Math.min.apply(null,la)-m,east:Math.max.apply(null,lo)+m,west:Math.min.apply(null,lo)-m}}
+  function defaultBounds(){const la=pins.map(p=>+p.lat),lo=pins.map(p=>+p.lon),m=.025;return{north:Math.max.apply(null,la)+m,south:Math.min.apply(null,la)-m,east:Math.max.apply(null,lo)+m,west:Math.min.apply(null,lo)-m}}
   function bounds(){try{const b=JSON.parse(localStorage.getItem(BOUNDS_KEY)||"null");if(b&&b.north>b.south&&b.east>b.west)return b}catch(e){}return defaultBounds()}
   function savePins(){localStorage.setItem(POINT_KEY,JSON.stringify(pins));render()}
   function openDb(){return new Promise((resolve,reject)=>{const q=indexedDB.open("lakec-offline-map-v1",1);q.onupgradeneeded=()=>q.result.createObjectStore("assets",{keyPath:"id"});q.onsuccess=()=>{mapDb=q.result;resolve(mapDb)};q.onerror=()=>reject(q.error)})}
