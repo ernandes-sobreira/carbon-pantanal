@@ -1,4 +1,4 @@
-const CACHE='lakec-v18';
+const CACHE='lakec-v19';
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(CACHE);
   await cache.addAll(['./', './index.html', './manifest.json', './field-map.js', './field-map-v2.js']);
