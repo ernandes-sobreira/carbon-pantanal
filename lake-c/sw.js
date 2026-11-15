@@ -1,7 +1,7 @@
-const CACHE='lakec-v20';;
+const CACHE='lakec-v21';;
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(CACHE);
-  await cache.addAll(['./', './index.html', './manifest.json', './field-map.js', './field-map-v2.js']);
+  await cache.addAll(['./', './index.html', './manifest.json', './field-map.js', './field-map-v2.js', './field-map-v3.js']);
   await self.skipWaiting();
 })()));
 self.addEventListener('activate', event => event.waitUntil((async () => {
