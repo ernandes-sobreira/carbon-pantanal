@@ -1234,8 +1234,29 @@ renderSitesList=function(){baseRenderSitesList();$("btnHeat").disabled=false;};
 $("btnHeat").setAttribute("aria-pressed","false");
 $("heatMode").addEventListener("change",()=>{carbonHeatMode=$("heatMode").value;updateHeatLegend();renderCarbonHeatmap();});
 $("btnHeat").addEventListener("click",()=>{carbonHeatEnabled=!carbonHeatEnabled;$("btnHeat").textContent=carbonHeatEnabled?"Ocultar heatmap":"Mostrar heatmap";$("btnHeat").setAttribute("aria-pressed",String(carbonHeatEnabled));$("heatLegend").classList.toggle("show",carbonHeatEnabled);if(carbonHeatEnabled)renderCarbonHeatmap();else if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);});
-$("recordTypeFilter").addEventListener("change",()=>{const t=$("recordTypeFilter").value,v=$("colValue").value;if(t==="Água"&&v.includes("solo"))$("colValue").value="Fluxo CO2 água (mg/m2/dia)";else if(t==="Solo"&&v.includes("água"))$("colValue").value="Fluxo CO2 solo (mg/m2/dia)";refreshAll();updateCarbonChartStates();});
-["researcherFilter","projectFilter","colValue"].forEach(id=>$(id).addEventListener("change",()=>{refreshAll();updateCarbonChartStates();}));
+function rebuildForCurrentVariable(){
+  const previousSites=new Set(selectedSites),previousSiteCount=sites.size;
+  const hadPrepared=previousSiteCount>0,hadAll=hadPrepared&&previousSites.size===previousSiteCount;
+  buildPrepared();
+  renderSitesList();
+  if(hadPrepared&&!hadAll){
+    selectedSites=new Set(Array.from(previousSites).filter(site=>sites.has(site)));
+    document.querySelectorAll("#sitesList .site-item").forEach(item=>{
+      const name=item.querySelector(".site-name")?.textContent||"";
+      const checkbox=item.querySelector('input[type="checkbox"]');
+      if(checkbox)checkbox.checked=selectedSites.has(name);
+    });
+  }
+  refreshAll();
+  updateCarbonChartStates();
+}
+$("recordTypeFilter").addEventListener("change",()=>{
+  const isWater=$("recordTypeFilter").value==="Água";
+  $("colValue").value=isWater?"Fluxo CO2 água (mg/m2/dia)":"Fluxo CO2 solo (mg/m2/dia)";
+  rebuildForCurrentVariable();
+});
+["researcherFilter","projectFilter"].forEach(id=>$(id).addEventListener("change",()=>{refreshAll();updateCarbonChartStates();}));
+$("colValue").addEventListener("change",rebuildForCurrentVariable);
 $("btnReset").addEventListener("click",()=>{carbonHeatEnabled=false;if(carbonHeatLayer&&map.hasLayer(carbonHeatLayer))map.removeLayer(carbonHeatLayer);$("btnHeat").textContent="Mostrar heatmap";$("btnHeat").setAttribute("aria-pressed","false");$("heatLegend").classList.remove("show");$("heatMode").value="records";carbonHeatMode="records";updateHeatLegend();$("btnHeat").disabled=true;if(analysisMeanChart){analysisMeanChart.data.labels=[];analysisMeanChart.data.datasets[0].data=[];analysisMeanChart.update();analysisDistributionChart.data.labels=[];analysisDistributionChart.data.datasets[0].data=[];analysisDistributionChart.update();}updateCarbonChartStates();});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
