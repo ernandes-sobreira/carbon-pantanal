@@ -1,7 +1,7 @@
-const CACHE='lakec-v27';;
+const CACHE='lakec-v28';
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(CACHE);
-  await cache.addAll(['./', './index.html', './manifest.json', './field-map.js', './field-map-v2.js', './field-map-v3.js']);
+  await cache.addAll(['./', './index.html', './manifest.json', './field-map.js', './field-map-v2.js', './field-map-v3.js', './install.js', './manifest.json?v=28', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png', './icons/favicon.ico']);
   await self.skipWaiting();
 })()));
 self.addEventListener('activate', event => event.waitUntil((async () => {
